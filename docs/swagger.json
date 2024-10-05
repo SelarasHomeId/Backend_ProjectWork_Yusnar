@@ -1,0 +1,98 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a doc for selarashomeid.",
+        "title": "selarashomeid",
+        "contact": {},
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/v1/test": {
+            "get": {
+                "description": "Test",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Test"
+                ],
+                "summary": "Test",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.TestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.errorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.errorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.errorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.TestResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.Meta": {
+            "type": "object",
+            "properties": {
+                "error_id": {
+                    "type": "string"
+                },
+                "info": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string",
+                    "default": "true"
+                },
+                "success": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "response.errorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/response.Meta"
+                }
+            }
+        }
+    }
+}

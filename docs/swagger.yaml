@@ -1,0 +1,64 @@
+definitions:
+  dto.TestResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  response.Meta:
+    properties:
+      error_id:
+        type: string
+      info:
+        type: string
+      message:
+        default: "true"
+        type: string
+      success:
+        default: true
+        type: boolean
+    type: object
+  response.errorResponse:
+    properties:
+      error:
+        type: string
+      meta:
+        $ref: '#/definitions/response.Meta'
+    type: object
+info:
+  contact: {}
+  description: This is a doc for selarashomeid.
+  title: selarashomeid
+  version: 1.0.0
+paths:
+  /api/v1/test:
+    get:
+      consumes:
+      - application/json
+      description: Test
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.errorResponse'
+      summary: Test
+      tags:
+      - Test
+swagger: "2.0"
