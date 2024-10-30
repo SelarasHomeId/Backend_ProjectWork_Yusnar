@@ -92,6 +92,7 @@ func tokenFromEnv() (*oauth2.Token, error) {
 }
 
 func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	// refresh token must be used at least once a month
 	refreshToken := os.Getenv("REFRESH_DRIVE")
 	if refreshToken == "" {
 		logrus.Printf("REFRESH_TOKEN environment variable is not set")
@@ -102,6 +103,15 @@ func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
 	tokSource := config.TokenSource(context.Background(), tok)
 
 	newToken, err := tokSource.Token()
+
+	jsonTok, _ := json.MarshalIndent(tok, "", "  ")
+	jsonTokSource, _ := json.MarshalIndent(tokSource, "", "  ")
+	jsonNewToken, _ := json.MarshalIndent(newToken, "", "  ")
+	fmt.Println("ini refresh token: ", refreshToken)
+	fmt.Println("tok: ", string(jsonTok))
+	fmt.Println("tokSource: ", string(jsonTokSource))
+	fmt.Println("newToken: ", string(jsonNewToken))
+
 	if err != nil {
 		logrus.Printf("Unable to retrieve token from web: %v", err)
 		return nil
