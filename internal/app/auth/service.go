@@ -24,6 +24,7 @@ import (
 type Service interface {
 	Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest) (map[string]interface{}, error)
 	Logout(ctx *abstraction.Context) (map[string]interface{}, error)
+	RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -64,6 +65,14 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "email or password is incorrect")
 		}
 
+		if data.IsLocked {
+			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "this account is locked")
+		}
+
+		if data.IsLogin {
+			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "user already login")
+		}
+
 		var encryptedUserID string
 		if encryptedUserID, err = s.encryptTokenClaims(data.ID); err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -91,10 +100,11 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if !data.IsLogin {
-			s.UserRepository.UpdateLoginUser(ctx, data.ID, true)
-		} else {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "user already login")
+		if err := s.UserRepository.UpdateLogin(ctx, &data.ID, true).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		if err := s.UserRepository.UpdateLoginFrom(ctx, &data.ID, payload.LoginFrom).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		return nil
@@ -123,8 +133,65 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 }
 
 func (s *service) Logout(ctx *abstraction.Context) (map[string]interface{}, error) {
-	s.UserRepository.UpdateLoginUser(ctx, ctx.Auth.ID, false)
+	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		if err := s.UserRepository.UpdateLogin(ctx, &ctx.Auth.ID, false).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		if err := s.UserRepository.UpdateLoginFrom(ctx, &ctx.Auth.ID, "").Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
 	return map[string]interface{}{
 		"message": "success logout!",
+	}, nil
+}
+
+func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error) {
+	var token string
+	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		data, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var encryptedUserID string
+		if encryptedUserID, err = s.encryptTokenClaims(data.ID); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		var encryptedUserRoleID string
+		if encryptedUserRoleID, err = s.encryptTokenClaims(data.RoleId); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		var encryptedUserDivisiID string
+		if encryptedUserDivisiID, err = s.encryptTokenClaims(data.DivisiId); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		encodedEmail := encoding.Encode(data.Email)
+
+		tokenClaims := &modelToken.TokenClaims{
+			ID:       encryptedUserID,
+			RoleID:   encryptedUserRoleID,
+			DivisiID: encryptedUserDivisiID,
+			Email:    encodedEmail,
+			Exp:      time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+		}
+		authToken := modelToken.NewAuthToken(tokenClaims)
+		token, err = authToken.Token()
+		if err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"token": token,
 	}, nil
 }

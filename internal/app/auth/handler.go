@@ -42,3 +42,11 @@ func (h *handler) Logout(c echo.Context) error {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h *handler) RefreshToken(c echo.Context) error {
+	data, err := h.service.RefreshToken(c.(*abstraction.Context))
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}

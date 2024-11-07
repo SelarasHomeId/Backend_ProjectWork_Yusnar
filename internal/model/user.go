@@ -5,14 +5,15 @@ import (
 )
 
 type UserEntity struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	RoleId   int    `json:"role_id"`
-	DivisiId int    `json:"divisi_id"`
-	IsLogin  bool   `json:"is_login"`
-	IsDelete bool   `json:"is_delete"`
-	IsLocked bool   `json:"is_locked"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	RoleId    int    `json:"role_id"`
+	DivisiId  int    `json:"divisi_id"`
+	IsLogin   bool   `json:"is_login"`
+	IsDelete  bool   `json:"is_delete"`
+	IsLocked  bool   `json:"is_locked"`
+	LoginFrom string `json:"login_from"`
 }
 
 // UserEntityModel ...

@@ -58,14 +58,15 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 		modelUser := &model.UserEntityModel{
 			Context: ctx,
 			UserEntity: model.UserEntity{
-				Name:     payload.Name,
-				Email:    payload.Email,
-				Password: string(hashedPassword),
-				RoleId:   payload.RoleId,
-				DivisiId: payload.DivisiId,
-				IsDelete: false,
-				IsLogin:  false,
-				IsLocked: false,
+				Name:      payload.Name,
+				Email:     payload.Email,
+				Password:  string(hashedPassword),
+				RoleId:    payload.RoleId,
+				DivisiId:  payload.DivisiId,
+				IsDelete:  false,
+				IsLogin:   false,
+				IsLocked:  false,
+				LoginFrom: "",
 			},
 		}
 		if err = s.UserRepository.Create(ctx, modelUser).Error; err != nil {
@@ -95,6 +96,10 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"id":         v.ID,
 			"name":       v.Name,
 			"email":      v.Email,
+			"is_delete":  v.IsDelete,
+			"is_login":   v.IsLogin,
+			"is_locked":  v.IsLocked,
+			"login_from": v.LoginFrom,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
 			"role": map[string]interface{}{
@@ -123,6 +128,10 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.UserFindByIDRe
 		"id":         data.ID,
 		"name":       data.Name,
 		"email":      data.Email,
+		"is_delete":  data.IsDelete,
+		"is_login":   data.IsLogin,
+		"is_locked":  data.IsLocked,
+		"login_from": data.LoginFrom,
 		"created_at": data.CreatedAt,
 		"updated_at": data.UpdatedAt,
 		"role": map[string]interface{}{

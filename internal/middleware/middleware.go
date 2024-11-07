@@ -15,6 +15,7 @@ func Init(e *echo.Echo) {
 	var APP = constant.APP
 
 	e.Use(Context)
+	e.Use(LoginAttempt(NewLoginAttemptMemoryStore(5)))
 	e.Use(
 		echoMiddleware.Recover(),
 		echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
