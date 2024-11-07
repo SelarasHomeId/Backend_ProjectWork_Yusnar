@@ -159,8 +159,6 @@ func Logout(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 		}
 
-		c.Request().Header.Set("Authorization", "")
-
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			return response.ErrorBuilder(http.StatusUnauthorized, err, "error when claim token").SendError(c)
