@@ -27,7 +27,10 @@ func (r *divisi) FindById(ctx *abstraction.Context, id int) (*model.DivisiEntity
 	conn := r.CheckTrx(ctx)
 
 	var data model.DivisiEntityModel
-	err := conn.Where("id = ? AND is_delete = ?", id, false).First(&data).Error
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
 	if err != nil {
 		return nil, err
 	}

@@ -27,7 +27,10 @@ func (r *role) FindById(ctx *abstraction.Context, id int) (*model.RoleEntityMode
 	conn := r.CheckTrx(ctx)
 
 	var data model.RoleEntityModel
-	err := conn.Where("id = ? AND is_delete = ?", id, false).First(&data).Error
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
 	if err != nil {
 		return nil, err
 	}

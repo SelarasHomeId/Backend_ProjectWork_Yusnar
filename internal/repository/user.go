@@ -3,6 +3,7 @@ package repository
 import (
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/model"
+	"selarashomeid/pkg/util/general"
 
 	"gorm.io/gorm"
 )
@@ -36,7 +37,12 @@ func (r *user) FindByEmail(ctx *abstraction.Context, email string) (*model.UserE
 	conn := r.CheckTrx(ctx)
 
 	var data model.UserEntityModel
-	err := conn.Where("email = ? AND is_delete = ?", email, false).Preload("Role").Preload("Divisi").First(&data).Error
+	err := conn.
+		Where("email = ? AND is_delete = ?", email, false).
+		Preload("Role").
+		Preload("Divisi").
+		First(&data).
+		Error
 	if err != nil {
 		return nil, err
 	}
@@ -48,13 +54,30 @@ func (r *user) Create(ctx *abstraction.Context, data *model.UserEntityModel) *go
 }
 
 func (r *user) Find(ctx *abstraction.Context) (data []*model.UserEntityModel, err error) {
-	err = r.CheckTrx(ctx).Where("is_delete = ?", false).Preload("Role").Preload("Divisi").Find(&data).Error
+	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false ")
+	limit, offset := general.ProcessLimitOffset(ctx)
+	order := general.ProcessOrder(ctx)
+	err = r.CheckTrx(ctx).
+		Where(where, whereParam).
+		Order(order).
+		Limit(limit).
+		Offset(offset).
+		Preload("Role").
+		Preload("Divisi").
+		Find(&data).
+		Error
 	return
 }
 
 func (r *user) Count(ctx *abstraction.Context) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false ")
 	var count model.UserCountDataModel
-	err = r.CheckTrx(ctx).Table("user").Select("COUNT(*) AS count").Where("is_delete = ?", false).Find(&count).Error
+	err = r.CheckTrx(ctx).
+		Table("user").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
 	data = &count.Count
 	return
 }
@@ -63,7 +86,12 @@ func (r *user) FindById(ctx *abstraction.Context, id int) (*model.UserEntityMode
 	conn := r.CheckTrx(ctx)
 
 	var data model.UserEntityModel
-	err := conn.Where("id = ? AND is_delete = ?", id, false).Preload("Role").Preload("Divisi").First(&data).Error
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		Preload("Role").
+		Preload("Divisi").
+		First(&data).
+		Error
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,8 @@ package general
 import (
 	"math/rand"
 	"regexp"
+	"selarashomeid/internal/abstraction"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -135,4 +137,166 @@ func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minL
 		inRune[i], inRune[j] = inRune[j], inRune[i]
 	})
 	return string(inRune)
+}
+
+func SanitizeStringOfAlphabet(input string) string {
+	// Menghapus karakter yang bukan huruf, underscore
+	return strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '_' {
+			return r
+		}
+		return -1
+	}, input)
+}
+
+func SanitizeStringOfNumber(input string) string {
+	// Menghapus karakter yang bukan angka
+	return strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, input)
+}
+
+func SanitizeString(input string) string {
+	// Define regex to remove special characters that could be used in SQL injection
+	re := regexp.MustCompile(`[%'";()=<>` + "`" + `#\-\[\]]`)
+	sanitized := re.ReplaceAllString(input, "")
+
+	// Only allow letters, numbers, and underscores as per original function logic
+	return strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			return r
+		}
+		return -1
+	}, sanitized)
+}
+
+func SanitizeStringDateBetween(input string) string {
+	// Define regex untuk format tanggal yang diinginkan: YYYY-MM-DD_YYYY-MM-DD
+	re := regexp.MustCompile(`[^0-9\-_]`)
+	// Hapus semua karakter yang tidak sesuai dengan format yang diinginkan
+	sanitized := re.ReplaceAllString(input, "")
+
+	// Pastikan bahwa input sesuai dengan format 'YYYY-MM-DD_YYYY-MM-DD'
+	// regex untuk mencocokkan tanggal dengan format yang benar
+	dateFormat := `^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$`
+	dateRe := regexp.MustCompile(dateFormat)
+
+	// Jika format tidak sesuai, kembalikan string kosong atau bisa diubah sesuai kebutuhan
+	if !dateRe.MatchString(sanitized) {
+		return ""
+	}
+
+	return sanitized
+}
+
+func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr string) (string, map[string]interface{}) {
+	var (
+		where      = "1=1 AND "
+		whereParam = map[string]interface{}{
+			"false": false,
+			"true":  true,
+		}
+	)
+
+	where += whereStr
+
+	if ctx.QueryParam("search") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("search")) + "%"
+		switch searchType {
+		case "user":
+			where += "AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email) "
+			whereParam["search_name"] = val
+			whereParam["search_email"] = val
+		}
+	}
+	if ctx.QueryParam("id") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("id")))
+		where += "AND id = @id "
+		whereParam["id"] = val
+	}
+	if ctx.QueryParam("name") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("name")) + "%"
+		where += "AND LOWER(name) LIKE @name "
+		whereParam["name"] = val
+	}
+	if ctx.QueryParam("email") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("email")) + "%"
+		where += "AND LOWER(email) LIKE @email "
+		whereParam["email"] = val
+	}
+	if ctx.QueryParam("is_login") != "" {
+		where += "AND is_login = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_login")) + " "
+	}
+	if ctx.QueryParam("created_at") != "" {
+		val := SanitizeStringDateBetween(ctx.QueryParam("created_at"))
+		valDate := strings.Split(val, "_")
+		where += "AND created_at BETWEEN @start_created_at AND @end_created_at "
+		whereParam["start_created_at"] = valDate[0]
+		whereParam["end_created_at"] = valDate[1]
+	}
+
+	if where == "" {
+		whereParam = nil
+	}
+
+	return where, whereParam
+}
+
+func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
+	var (
+		limit  = 10
+		offset = 1
+	)
+	if ctx.QueryParam("page_size") != "" {
+		ps, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("page_size")))
+		limit = ps
+	}
+	if ctx.QueryParam("page") != "" {
+		p, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("page")))
+		offset = p
+	}
+	return limit, (offset - 1) * limit
+}
+
+func ProcessOrder(ctx *abstraction.Context) string {
+	var (
+		order string
+		o     = "id"
+		ob    = "ASC"
+	)
+	if ctx.QueryParam("order") != "" {
+		o = ValidationOrder(ctx.QueryParam("order"))
+	}
+	if ctx.QueryParam("order_by") != "" {
+		ob = ValidationOrderBy(ctx.QueryParam("order_by"))
+	}
+	order = o + " " + ob
+	return order
+}
+
+func ValidationOrder(str string) string {
+	str = SanitizeString(str)
+	str = strings.ToLower(str)
+	orderStack := []string{"id", "name", "email"}
+	for _, item := range orderStack {
+		if item == str {
+			return str
+		}
+	}
+	return "id"
+}
+
+func ValidationOrderBy(str string) string {
+	str = SanitizeStringOfAlphabet(str)
+	str = strings.ToUpper(str)
+	orderStack := []string{"ASC", "DESC"}
+	for _, item := range orderStack {
+		if item == str {
+			return str
+		}
+	}
+	return "ASC"
 }
