@@ -54,7 +54,7 @@ func (r *user) Create(ctx *abstraction.Context, data *model.UserEntityModel) *go
 }
 
 func (r *user) Find(ctx *abstraction.Context) (data []*model.UserEntityModel, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false ")
+	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false")
 	limit, offset := general.ProcessLimitOffset(ctx)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).

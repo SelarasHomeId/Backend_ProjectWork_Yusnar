@@ -194,46 +194,44 @@ func SanitizeStringDateBetween(input string) string {
 
 func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr string) (string, map[string]interface{}) {
 	var (
-		where      = "1=1 AND "
+		where      = "1=1 AND " + whereStr
 		whereParam = map[string]interface{}{
 			"false": false,
 			"true":  true,
 		}
 	)
 
-	where += whereStr
-
 	if ctx.QueryParam("search") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("search")) + "%"
 		switch searchType {
 		case "user":
-			where += "AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email) "
+			where += " AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email)"
 			whereParam["search_name"] = val
 			whereParam["search_email"] = val
 		}
 	}
 	if ctx.QueryParam("id") != "" {
 		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("id")))
-		where += "AND id = @id "
+		where += " AND id = @id"
 		whereParam["id"] = val
 	}
 	if ctx.QueryParam("name") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("name")) + "%"
-		where += "AND LOWER(name) LIKE @name "
+		where += " AND LOWER(name) LIKE @name"
 		whereParam["name"] = val
 	}
 	if ctx.QueryParam("email") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("email")) + "%"
-		where += "AND LOWER(email) LIKE @email "
+		where += " AND LOWER(email) LIKE @email"
 		whereParam["email"] = val
 	}
 	if ctx.QueryParam("is_login") != "" {
-		where += "AND is_login = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_login")) + " "
+		where += " AND is_login = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_login"))
 	}
 	if ctx.QueryParam("created_at") != "" {
 		val := SanitizeStringDateBetween(ctx.QueryParam("created_at"))
 		valDate := strings.Split(val, "_")
-		where += "AND created_at BETWEEN @start_created_at AND @end_created_at "
+		where += " AND created_at BETWEEN @start_created_at AND @end_created_at"
 		whereParam["start_created_at"] = valDate[0]
 		whereParam["end_created_at"] = valDate[1]
 	}
