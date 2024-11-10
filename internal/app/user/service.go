@@ -7,6 +7,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
@@ -42,6 +43,10 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+		}
+
 		userEmail, err := s.UserRepository.FindByEmail(ctx, payload.Email)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -180,6 +185,12 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 		if payload.DivisiId != nil {
 			newUserData.DivisiId = *payload.DivisiId
 		}
+		if payload.IsLocked != nil {
+			newUserData.IsLocked = *payload.IsLocked
+			if err = s.UserRepository.UpdateLocked(ctx, &newUserData.ID, newUserData.IsLocked).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
 
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -195,6 +206,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+		}
+
 		userData, err := s.UserRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -222,6 +237,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRe
 
 func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChangePasswordRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		if ctx.Auth.ID != payload.ID {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this user is not permitted")
+		}
+
 		userData, err := s.UserRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -264,6 +283,10 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserResetPasswordRequest) (map[string]interface{}, error) {
 	var new_password string
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+		}
+
 		userData, err := s.UserRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -295,6 +318,6 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 	}
 	return map[string]interface{}{
 		"message":      "success reset password!",
-		"new_password": new_password,
+		"new_password": new_password, // must be sent to the user concerned
 	}, nil
 }

@@ -18,6 +18,7 @@ type UserUpdateRequest struct {
 	Email    *string `json:"email" form:"email"`
 	RoleId   *int    `json:"role_id" form:"role_id"`
 	DivisiId *int    `json:"divisi_id" form:"divisi_id"`
+	IsLocked *bool   `json:"is_locked" form:"is_locked"`
 }
 
 type UserDeleteByIDRequest struct {

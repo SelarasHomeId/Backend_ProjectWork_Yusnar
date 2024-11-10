@@ -225,8 +225,26 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND LOWER(email) LIKE @email"
 		whereParam["email"] = val
 	}
+	if ctx.QueryParam("role_id") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("role_id")))
+		where += " AND role_id = @role_id"
+		whereParam["role_id"] = val
+	}
+	if ctx.QueryParam("divisi_id") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("divisi_id")))
+		where += " AND divisi_id = @divisi_id"
+		whereParam["divisi_id"] = val
+	}
 	if ctx.QueryParam("is_login") != "" {
 		where += " AND is_login = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_login"))
+	}
+	if ctx.QueryParam("is_locked") != "" {
+		where += " AND is_locked = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_locked"))
+	}
+	if ctx.QueryParam("login_from") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("login_from")) + "%"
+		where += " AND LOWER(login_from) LIKE @login_from"
+		whereParam["login_from"] = val
 	}
 	if ctx.QueryParam("created_at") != "" {
 		val := SanitizeStringDateBetween(ctx.QueryParam("created_at"))

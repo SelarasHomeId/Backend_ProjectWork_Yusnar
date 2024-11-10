@@ -54,7 +54,6 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 							return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 						}
 					}
-					response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "token_is_expired").SendError(c)
 					return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "token_is_expired").SendError(c)
 				}
 				return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)

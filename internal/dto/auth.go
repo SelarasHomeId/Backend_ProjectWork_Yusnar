@@ -47,3 +47,7 @@ func (r RefreshTokenRequest) TokenClaims() (*modeltoken.TokenClaims, error) {
 		Exp:      int64(c["exp"].(float64)),
 	}, nil
 }
+
+type AuthSendEmailResetPasswordRequest struct {
+	Email string `json:"email" form:"email" validate:"required"`
+}

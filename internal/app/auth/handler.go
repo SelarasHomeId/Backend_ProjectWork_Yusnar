@@ -50,3 +50,18 @@ func (h *handler) RefreshToken(c echo.Context) error {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h *handler) SendEmailResetPassword(c echo.Context) error {
+	payload := new(dto.AuthSendEmailResetPasswordRequest)
+	if err := c.Bind(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
+	}
+	if err := c.Validate(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
+	}
+	data, err := h.service.SendEmailResetPassword(c.(*abstraction.Context), payload)
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}

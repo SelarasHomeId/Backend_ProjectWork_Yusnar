@@ -25,6 +25,7 @@ type Service interface {
 	Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest) (map[string]interface{}, error)
 	Logout(ctx *abstraction.Context) (map[string]interface{}, error)
 	RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error)
+	SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -193,5 +194,18 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 
 	return map[string]interface{}{
 		"token": token,
+	}, nil
+}
+
+func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error) {
+	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"message": "success send email reset password!",
 	}, nil
 }
