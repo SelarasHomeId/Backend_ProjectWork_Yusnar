@@ -43,7 +43,7 @@ func (s *service) Test(ctx *abstraction.Context) (*dto.TestResponse, error) {
 }
 
 func (s *service) TestGomail(ctx *abstraction.Context, recipient string) (*dto.TestResponse, error) {
-	err := gomail.SendMail(recipient)
+	err := gomail.SendMail(recipient, "Test Email", "Hello World!")
 	if err != nil {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

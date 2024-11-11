@@ -14,6 +14,8 @@ import (
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/model"
 	"selarashomeid/pkg/database"
+	"selarashomeid/pkg/gomail"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 
 	"github.com/labstack/echo/v4"
@@ -351,9 +353,16 @@ func (store *LoginAttemptMemoryStore) IncreaseAttempt(c echo.Context, identifier
 		if user.Attempts >= store.maxAttempts {
 			switch user.LockDuration {
 			case 1 * time.Minute:
-				user.LockDuration = 30 * time.Minute
-			case 30 * time.Minute:
+				user.LockDuration = 15 * time.Minute
+			case 15 * time.Minute:
 				err = conn.Model(userEntityModel).Where("email = ?", email).Update("is_locked", true).Error
+				err = gomail.SendMail(email, "Account Locked for SelarasHomeId", general.ParseTemplateEmail("./assets/html/notification_locked_user.html", struct {
+					NAME  string
+					EMAIL string
+				}{
+					NAME:  userEntityModel.Name,
+					EMAIL: userEntityModel.Email,
+				}))
 				user.Locked = true
 			default:
 				user.LockDuration = 1 * time.Minute

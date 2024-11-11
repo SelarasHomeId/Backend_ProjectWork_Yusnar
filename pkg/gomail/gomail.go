@@ -1,6 +1,7 @@
 package gomail
 
 import (
+	"errors"
 	"selarashomeid/internal/config"
 	"strconv"
 
@@ -8,13 +9,16 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-func SendMail(recipient string) error {
+func SendMail(recipient, subject, bodyHtml string) error {
+	if bodyHtml == "" {
+		return errors.New("error parsing body html")
+	}
+
 	mailer := gomail.NewMessage()
 	mailer.SetHeader("From", config.Get().Gomail.SenderName)
 	mailer.SetHeader("To", recipient)
-	mailer.SetAddressHeader("Cc", "tralalala@gmail.com", "Tra Lala La")
-	mailer.SetHeader("Subject", "Test mail")
-	mailer.SetBody("text/html", "Hello, <b>have a nice day</b>")
+	mailer.SetHeader("Subject", subject)
+	mailer.SetBody("text/html", bodyHtml)
 
 	portMail, _ := strconv.Atoi(config.Get().Gomail.SmtpPort)
 	dialer := gomail.NewDialer(

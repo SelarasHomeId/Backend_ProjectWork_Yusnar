@@ -7,12 +7,17 @@ import (
 	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/validator"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 )
 
-func Init(e *echo.Echo) {
+var dbRedis *redis.Client = nil
+
+func Init(e *echo.Echo, redisClient *redis.Client) {
 	var APP = constant.APP
+
+	dbRedis = redisClient
 
 	e.Use(Context)
 	e.Use(LoginAttempt(NewLoginAttemptMemoryStore(5)))
@@ -29,10 +34,8 @@ func Init(e *echo.Echo) {
 			Output:           os.Stdout,
 		}),
 		echoMiddleware.SecureWithConfig(echoMiddleware.SecureConfig{
-			XFrameOptions:         "DENY",
-			XSSProtection:         "1; mode=block",
-			ContentTypeNosniff:    "nosniff",
-			ContentSecurityPolicy: "default-src 'self'",
+			XFrameOptions: "DENY",
+			XSSProtection: "1; mode=block",
 		}),
 	)
 	e.HTTPErrorHandler = ErrorHandler

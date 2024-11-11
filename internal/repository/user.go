@@ -16,7 +16,6 @@ type User interface {
 	FindById(ctx *abstraction.Context, id int) (*model.UserEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
 	UpdateDelete(ctx *abstraction.Context, id *int, delete bool) *gorm.DB
-	UpdateLogin(ctx *abstraction.Context, id *int, login bool) *gorm.DB
 	UpdateLocked(ctx *abstraction.Context, id *int, locked bool) *gorm.DB
 	UpdateLoginFrom(ctx *abstraction.Context, id *int, from string) *gorm.DB
 }
@@ -104,10 +103,6 @@ func (r *user) Update(ctx *abstraction.Context, data *model.UserEntityModel) *go
 
 func (r *user) UpdateDelete(ctx *abstraction.Context, id *int, delete bool) *gorm.DB {
 	return r.CheckTrx(ctx).Model(&model.UserEntityModel{}).Where("id = ?", id).Update("is_delete", delete)
-}
-
-func (r *user) UpdateLogin(ctx *abstraction.Context, id *int, login bool) *gorm.DB {
-	return r.CheckTrx(ctx).Model(&model.UserEntityModel{}).Where("id = ?", id).Update("is_login", login)
 }
 
 func (r *user) UpdateLocked(ctx *abstraction.Context, id *int, locked bool) *gorm.DB {

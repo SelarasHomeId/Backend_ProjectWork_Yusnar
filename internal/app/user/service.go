@@ -8,6 +8,7 @@ import (
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/gomail"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
@@ -69,7 +70,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 				RoleId:    payload.RoleId,
 				DivisiId:  payload.DivisiId,
 				IsDelete:  false,
-				IsLogin:   false,
 				IsLocked:  false,
 				LoginFrom: "",
 			},
@@ -102,7 +102,6 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"name":       v.Name,
 			"email":      v.Email,
 			"is_delete":  v.IsDelete,
-			"is_login":   v.IsLogin,
 			"is_locked":  v.IsLocked,
 			"login_from": v.LoginFrom,
 			"created_at": v.CreatedAt,
@@ -134,7 +133,6 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.UserFindByIDRe
 		"name":       data.Name,
 		"email":      data.Email,
 		"is_delete":  data.IsDelete,
-		"is_login":   data.IsLogin,
 		"is_locked":  data.IsLocked,
 		"login_from": data.LoginFrom,
 		"created_at": data.CreatedAt,
@@ -220,7 +218,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRe
 
 		newUserData := new(model.UserEntityModel)
 		newUserData.Context = ctx
-		newUserData.ID = payload.ID
+		newUserData.ID = userData.ID
 		newUserData.IsDelete = true
 
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
@@ -264,7 +262,7 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 
 		newUserData := new(model.UserEntityModel)
 		newUserData.Context = ctx
-		newUserData.ID = payload.ID
+		newUserData.ID = userData.ID
 		newUserData.Password = string(hashedPassword)
 
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
@@ -281,10 +279,14 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 }
 
 func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserResetPasswordRequest) (map[string]interface{}, error) {
-	var new_password string
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		userData, err := s.UserRepository.FindById(ctx, payload.ID)
@@ -301,14 +303,29 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 		if err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
-		new_password = passwordString
 
 		newUserData := new(model.UserEntityModel)
 		newUserData.Context = ctx
-		newUserData.ID = payload.ID
+		newUserData.ID = userData.ID
 		newUserData.Password = string(hashedPassword)
 
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password_admin.html", struct {
+			NAME      string
+			RESETNAME string
+			EMAIL     string
+			PASSWORD  string
+			LINK      string
+		}{
+			NAME:      userData.Name,
+			RESETNAME: userLogin.Name,
+			EMAIL:     userData.Email,
+			PASSWORD:  passwordString,
+			LINK:      constant.BASE_URL,
+		})); err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -317,7 +334,6 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 		return nil, err
 	}
 	return map[string]interface{}{
-		"message":      "success reset password!",
-		"new_password": new_password, // must be sent to the user concerned
+		"message": "success reset password!",
 	}, nil
 }

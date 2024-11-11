@@ -10,6 +10,7 @@ import (
 
 type Configuration struct {
 	DB      DB
+	Redis   Redis
 	Logging Logging
 	JWT     JWT
 	Gomail  Gomail
@@ -24,13 +25,21 @@ type DB struct {
 	DbName string
 }
 
+type Redis struct {
+	RedisHost     string
+	RedisPort     string
+	RedisUser     string
+	RedisPassword string
+}
+
 type Logging struct {
 	GormLevel   string
 	LogrusLevel string
 }
 
 type JWT struct {
-	SecretKey string
+	SecretKey          string
+	SecretKeyEksternal string
 }
 
 type Gomail struct {
@@ -68,16 +77,21 @@ func Init() *Configuration {
 	defaultConfig.DB.DbPass = os.Getenv("DB_PASS")
 	defaultConfig.DB.DbPort = os.Getenv("DB_PORT")
 	defaultConfig.DB.DbName = os.Getenv("DB_NAME")
+	defaultConfig.Redis.RedisHost = os.Getenv("REDIS_HOST")
+	defaultConfig.Redis.RedisUser = os.Getenv("REDIS_USER")
+	defaultConfig.Redis.RedisPassword = os.Getenv("REDIS_PASS")
+	defaultConfig.Redis.RedisPort = os.Getenv("REDIS_PORT")
 	defaultConfig.Logging.GormLevel = os.Getenv("GORM_LEVEL")
 	defaultConfig.Logging.LogrusLevel = os.Getenv("LOGRUS_LEVEL")
 	defaultConfig.JWT.SecretKey = os.Getenv("SECRET_KEY")
-
-	// on development
+	defaultConfig.JWT.SecretKeyEksternal = os.Getenv("SECRET_KEY_EKSTERNAL")
 	defaultConfig.Gomail.SmtpHost = os.Getenv("SMTP_HOST")
 	defaultConfig.Gomail.SmtpPort = os.Getenv("SMTP_PORT")
 	defaultConfig.Gomail.SenderName = os.Getenv("SENDER_NAME")
 	defaultConfig.Gomail.AuthEmail = os.Getenv("AUTH_EMAIL")
 	defaultConfig.Gomail.AuthPassword = os.Getenv("AUTH_PASSWORD")
+
+	// on development
 	defaultConfig.Drive.CredentialsDrive = os.Getenv("CREDENTIALS_DRIVE")
 	defaultConfig.Drive.RefreshTokenDrive = os.Getenv("REFRESH_DRIVE")
 

@@ -38,7 +38,7 @@ func main() {
 
 	f := factory.NewFactory()
 
-	middlewareEcho.Init(e)
+	middlewareEcho.Init(e, f.DbRedis)
 
 	httpselarashomeid.Init(e, f)
 

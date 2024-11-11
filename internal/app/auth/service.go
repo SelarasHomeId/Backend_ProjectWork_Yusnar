@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,12 +12,16 @@ import (
 	"selarashomeid/internal/model"
 	modelToken "selarashomeid/internal/model/token"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/gomail"
 	"selarashomeid/pkg/util/aescrypt"
 	"selarashomeid/pkg/util/encoding"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -26,19 +31,22 @@ type Service interface {
 	Logout(ctx *abstraction.Context) (map[string]interface{}, error)
 	RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error)
 	SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error)
+	ValidationResetPassword(ctx *abstraction.Context, payload *dto.AuthValidationResetPasswordRequest) (string, error)
 }
 
 type service struct {
 	UserRepository repository.User
 
-	DB *gorm.DB
+	DB      *gorm.DB
+	DbRedis *redis.Client
 }
 
 func NewService(f *factory.Factory) Service {
 	return &service{
 		UserRepository: f.UserRepository,
 
-		DB: f.Db,
+		DB:      f.Db,
+		DbRedis: f.DbRedis,
 	}
 }
 
@@ -70,10 +78,6 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "this account is locked")
 		}
 
-		if data.IsLogin {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "user already login")
-		}
-
 		var encryptedUserID string
 		if encryptedUserID, err = s.encryptTokenClaims(data.ID); err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -101,9 +105,6 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err := s.UserRepository.UpdateLogin(ctx, &data.ID, true).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
 		if err := s.UserRepository.UpdateLoginFrom(ctx, &data.ID, payload.LoginFrom).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -135,9 +136,6 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 
 func (s *service) Logout(ctx *abstraction.Context) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		if err := s.UserRepository.UpdateLogin(ctx, &ctx.Auth.ID, false).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
 		if err := s.UserRepository.UpdateLoginFrom(ctx, &ctx.Auth.ID, "").Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -199,6 +197,34 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 
 func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		data, err := s.UserRepository.FindByEmail(ctx, payload.Email)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		if data == nil {
+			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "email not found")
+		}
+
+		eksternalToken := new(modelToken.AuthEksternalToken)
+		eksternalToken.UserId = data.ID
+		token, err := eksternalToken.GenerateTokenEksternal()
+		if err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		s.DbRedis.Set(context.Background(), *token, *token, 0)
+
+		if err = gomail.SendMail(data.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password.html", struct {
+			NAME  string
+			EMAIL string
+			LINK  string
+		}{
+			NAME:  data.Name,
+			EMAIL: data.Email,
+			LINK:  constant.BASE_URL + "/auth/validation/reset-password/" + *token,
+		})); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
 
 		return nil
 	}); err != nil {
@@ -208,4 +234,67 @@ func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.
 	return map[string]interface{}{
 		"message": "success send email reset password!",
 	}, nil
+}
+
+func (s *service) ValidationResetPassword(ctx *abstraction.Context, payload *dto.AuthValidationResetPasswordRequest) (string, error) {
+	userData := new(model.UserEntityModel)
+	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		_, err := s.DbRedis.Get(context.Background(), payload.Token).Result()
+		if err == redis.Nil {
+			return errors.New("your token is invalid")
+		} else {
+			s.DbRedis.Del(context.Background(), payload.Token)
+		}
+
+		data, err := modelToken.ValidateTokenEksternal(payload.Token)
+		if err != nil {
+			return errors.New("your token is invalid")
+		}
+
+		userData, err = s.UserRepository.FindById(ctx, data.UserId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		if userData == nil {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "user not found")
+		}
+
+		passwordString := general.GeneratePassword(8, 1, 1, 1, 1)
+		password := []byte(passwordString)
+		hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+		if err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		newUserData := new(model.UserEntityModel)
+		newUserData.Context = ctx
+		newUserData.ID = userData.ID
+		newUserData.Password = string(hashedPassword)
+
+		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password_admin.html", struct {
+			NAME      string
+			RESETNAME string
+			EMAIL     string
+			PASSWORD  string
+			LINK      string
+		}{
+			NAME:      userData.Name,
+			RESETNAME: "System",
+			EMAIL:     userData.Email,
+			PASSWORD:  passwordString,
+			LINK:      constant.BASE_URL,
+		})); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	return userData.Email, nil
 }

@@ -1,12 +1,17 @@
 package general
 
 import (
+	"bytes"
+	"io/ioutil"
 	"math/rand"
 	"regexp"
 	"selarashomeid/internal/abstraction"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 func IsValidEmail(email string) bool {
@@ -235,9 +240,6 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND divisi_id = @divisi_id"
 		whereParam["divisi_id"] = val
 	}
-	if ctx.QueryParam("is_login") != "" {
-		where += " AND is_login = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_login"))
-	}
 	if ctx.QueryParam("is_locked") != "" {
 		where += " AND is_locked = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_locked"))
 	}
@@ -315,4 +317,23 @@ func ValidationOrderBy(str string) string {
 		}
 	}
 	return "ASC"
+}
+
+func ParseTemplateEmail(templateFileName string, data interface{}) string {
+	t, err := template.ParseFiles(templateFileName)
+	if err != nil {
+		logrus.Error("Error paring template email: ", err.Error())
+		return ""
+	}
+	buf := new(bytes.Buffer)
+	if err = t.Execute(buf, data); err != nil {
+		logrus.Error("Error paring template email: ", err.Error())
+		return ""
+	}
+	return buf.String()
+}
+
+func ProcessHTMLResponseEmail(filePath, placeholder, value string) string {
+	content, _ := ioutil.ReadFile(filePath)
+	return strings.Replace(string(content), placeholder, value, -1)
 }

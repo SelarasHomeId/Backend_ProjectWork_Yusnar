@@ -5,6 +5,7 @@ import (
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
 	"selarashomeid/internal/factory"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 
 	"github.com/labstack/echo/v4"
@@ -64,4 +65,21 @@ func (h *handler) SendEmailResetPassword(c echo.Context) error {
 		return response.ErrorResponse(err).SendError(c)
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
+}
+
+func (h *handler) ValidationResetPassword(c echo.Context) error {
+	payload := new(dto.AuthValidationResetPasswordRequest)
+	if err := c.Bind(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
+	}
+	if err := c.Validate(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
+	}
+	data, err := h.service.ValidationResetPassword(c.(*abstraction.Context), payload)
+	if err != nil {
+		htmlContent := general.ProcessHTMLResponseEmail("assets/html/reset_password_failed.html", "{{.Error}}", err.Error())
+		return c.HTML(200, htmlContent)
+	}
+	htmlContent := general.ProcessHTMLResponseEmail("assets/html/reset_password_success.html", "{{.Data}}", data)
+	return c.HTML(200, htmlContent)
 }

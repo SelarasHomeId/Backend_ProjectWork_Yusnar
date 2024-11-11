@@ -10,7 +10,6 @@ type UserEntity struct {
 	Password  string `json:"password"`
 	RoleId    int    `json:"role_id"`
 	DivisiId  int    `json:"divisi_id"`
-	IsLogin   bool   `json:"is_login"`
 	IsDelete  bool   `json:"is_delete"`
 	IsLocked  bool   `json:"is_locked"`
 	LoginFrom string `json:"login_from"`
