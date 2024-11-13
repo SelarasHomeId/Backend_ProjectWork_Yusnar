@@ -30,7 +30,7 @@ type Service interface {
 	Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest) (map[string]interface{}, error)
 	Logout(ctx *abstraction.Context) (map[string]interface{}, error)
 	RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error)
-	SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error)
+	SendEmailForgotPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailForgotPasswordRequest) (map[string]interface{}, error)
 	ValidationResetPassword(ctx *abstraction.Context, payload *dto.AuthValidationResetPasswordRequest) (string, error)
 }
 
@@ -195,7 +195,7 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 	}, nil
 }
 
-func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailResetPasswordRequest) (map[string]interface{}, error) {
+func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailForgotPasswordRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		data, err := s.UserRepository.FindByEmail(ctx, payload.Email)
 		if err != nil && err.Error() != "record not found" {
@@ -214,7 +214,7 @@ func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.
 
 		s.DbRedis.Set(context.Background(), *token, *token, 0)
 
-		if err = gomail.SendMail(data.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password.html", struct {
+		if err = gomail.SendMail(data.Email, "Forgot Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/forgot_password.html", struct {
 			NAME  string
 			EMAIL string
 			LINK  string
@@ -232,7 +232,7 @@ func (s *service) SendEmailResetPassword(ctx *abstraction.Context, payload *dto.
 	}
 
 	return map[string]interface{}{
-		"message": "success send email reset password!",
+		"message": "success send email forgot password!",
 	}, nil
 }
 

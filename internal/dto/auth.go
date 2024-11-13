@@ -48,7 +48,7 @@ func (r RefreshTokenRequest) TokenClaims() (*modeltoken.TokenClaims, error) {
 	}, nil
 }
 
-type AuthSendEmailResetPasswordRequest struct {
+type AuthSendEmailForgotPasswordRequest struct {
 	Email string `json:"email" form:"email" validate:"required"`
 }
 
