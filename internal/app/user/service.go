@@ -56,7 +56,8 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "email already exist")
 		}
 
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
+		passwordString := general.GeneratePassword(8, 1, 1, 1, 1)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordString), bcrypt.DefaultCost)
 		if err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -77,6 +78,21 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 		if err = s.UserRepository.Create(ctx, modelUser).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		if err = gomail.SendMail(payload.Email, "Welcome to SelarasHomeId (Login Information)", general.ParseTemplateEmail("./assets/html/notif_create_user.html", struct {
+			NAME     string
+			EMAIL    string
+			PASSWORD string
+			LINK     string
+		}{
+			NAME:     payload.Name,
+			EMAIL:    payload.Email,
+			PASSWORD: passwordString,
+			LINK:     constant.BASE_URL,
+		})); err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -87,15 +103,18 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 }
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
+	var res []map[string]interface{}
+	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+	}
 	data, err := s.UserRepository.Find(ctx)
 	if err != nil && err.Error() != "record not found" {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, err, "error find all user")
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	count, err := s.UserRepository.Count(ctx)
 	if err != nil && err.Error() != "record not found" {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, err, "error find all user")
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	var res []map[string]interface{}
 	for _, v := range data {
 		res = append(res, map[string]interface{}{
 			"id":         v.ID,
@@ -123,28 +142,31 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 }
 
 func (s *service) FindById(ctx *abstraction.Context, payload *dto.UserFindByIDRequest) (map[string]interface{}, error) {
+	var res map[string]interface{} = nil
 	data, err := s.UserRepository.FindById(ctx, payload.ID)
 	if err != nil && err.Error() != "record not found" {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, err, "error find by id user")
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
+	if data != nil {
+		res = map[string]interface{}{
+			"id":         data.ID,
+			"name":       data.Name,
+			"email":      data.Email,
+			"is_delete":  data.IsDelete,
+			"is_locked":  data.IsLocked,
+			"login_from": data.LoginFrom,
+			"created_at": data.CreatedAt,
+			"updated_at": data.UpdatedAt,
+			"role": map[string]interface{}{
+				"id":   data.Role.ID,
+				"name": data.Role.Name,
+			},
+			"divisi": map[string]interface{}{
+				"id":   data.Divisi.ID,
+				"name": data.Divisi.Name,
+			},
+		}
 
-	res := map[string]interface{}{
-		"id":         data.ID,
-		"name":       data.Name,
-		"email":      data.Email,
-		"is_delete":  data.IsDelete,
-		"is_locked":  data.IsLocked,
-		"login_from": data.LoginFrom,
-		"created_at": data.CreatedAt,
-		"updated_at": data.UpdatedAt,
-		"role": map[string]interface{}{
-			"id":   data.Role.ID,
-			"name": data.Role.Name,
-		},
-		"divisi": map[string]interface{}{
-			"id":   data.Divisi.ID,
-			"name": data.Divisi.Name,
-		},
 	}
 	return map[string]interface{}{
 		"data": res,
@@ -298,8 +320,7 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 		}
 
 		passwordString := general.GeneratePassword(8, 1, 1, 1, 1)
-		password := []byte(passwordString)
-		hashedPassword, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordString), bcrypt.DefaultCost)
 		if err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

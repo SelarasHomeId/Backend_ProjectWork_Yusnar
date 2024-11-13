@@ -14,8 +14,6 @@ type RoleEntityModel struct {
 	// entity
 	RoleEntity
 
-	abstraction.Entity
-
 	// context
 	Context *abstraction.Context `json:"-" gorm:"-"`
 }

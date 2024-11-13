@@ -18,6 +18,7 @@ type User interface {
 	UpdateDelete(ctx *abstraction.Context, id *int, delete bool) *gorm.DB
 	UpdateLocked(ctx *abstraction.Context, id *int, locked bool) *gorm.DB
 	UpdateLoginFrom(ctx *abstraction.Context, id *int, from string) *gorm.DB
+	FindByDivisiId(ctx *abstraction.Context, id *int) (*model.UserEntityModel, error)
 }
 
 type user struct {
@@ -111,4 +112,18 @@ func (r *user) UpdateLocked(ctx *abstraction.Context, id *int, locked bool) *gor
 
 func (r *user) UpdateLoginFrom(ctx *abstraction.Context, id *int, from string) *gorm.DB {
 	return r.CheckTrx(ctx).Model(&model.UserEntityModel{}).Where("id = ?", id).Update("login_from", from)
+}
+
+func (r *user) FindByDivisiId(ctx *abstraction.Context, id *int) (*model.UserEntityModel, error) {
+	conn := r.CheckTrx(ctx)
+
+	var data model.UserEntityModel
+	err := conn.
+		Where("divisi_id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

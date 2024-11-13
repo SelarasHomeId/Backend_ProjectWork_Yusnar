@@ -6,6 +6,8 @@ import (
 
 	_ "selarashomeid/docs"
 	"selarashomeid/internal/app/auth"
+	"selarashomeid/internal/app/divisi"
+	"selarashomeid/internal/app/role"
 	"selarashomeid/internal/app/test"
 	user "selarashomeid/internal/app/user"
 	"selarashomeid/internal/factory"
@@ -34,4 +36,6 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	test.NewHandler(f).Route(e.Group("/test"))
 	auth.NewHandler(f).Route(e.Group("/auth"))
 	user.NewHandler(f).Route(e.Group("/user"))
+	role.NewHandler(f).Route(e.Group("/role"))
+	divisi.NewHandler(f).Route(e.Group("/divisi"))
 }
