@@ -18,10 +18,11 @@ type Factory struct {
 }
 
 type Repository_initiated struct {
-	TestRepository   repository.Test
-	UserRepository   repository.User
-	DivisiRepository repository.Divisi
-	RoleRepository   repository.Role
+	TestRepository       repository.Test
+	UserRepository       repository.User
+	DivisiRepository     repository.Divisi
+	RoleRepository       repository.Role
+	NotifikasiRepository repository.Notifikasi
 }
 
 func NewFactory() *Factory {
@@ -54,4 +55,5 @@ func (f *Factory) SetupRepository() {
 	f.UserRepository = repository.NewUser(f.Db)
 	f.DivisiRepository = repository.NewDivisi(f.Db)
 	f.RoleRepository = repository.NewRole(f.Db)
+	f.NotifikasiRepository = repository.NewNotifikasi(f.Db)
 }

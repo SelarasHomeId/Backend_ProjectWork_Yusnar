@@ -199,13 +199,17 @@ func SanitizeStringDateBetween(input string) string {
 
 func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr string) (string, map[string]interface{}) {
 	var (
-		where      = "1=1 AND " + whereStr
+		where      = "1=@where"
 		whereParam = map[string]interface{}{
+			"where": 1,
 			"false": false,
 			"true":  true,
 		}
 	)
 
+	if whereStr != "" {
+		where += " AND " + whereStr
+	}
 	if ctx.QueryParam("search") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("search")) + "%"
 		switch searchType {
@@ -249,6 +253,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 	if ctx.QueryParam("is_locked") != "" {
 		where += " AND is_locked = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_locked"))
 	}
+	if ctx.QueryParam("is_read") != "" {
+		where += " AND is_read = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_read"))
+	}
 	if ctx.QueryParam("login_from") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("login_from")) + "%"
 		where += " AND LOWER(login_from) LIKE @login_from"
@@ -260,10 +267,6 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND created_at BETWEEN @start_created_at AND @end_created_at"
 		whereParam["start_created_at"] = valDate[0]
 		whereParam["end_created_at"] = valDate[1]
-	}
-
-	if where == "" {
-		whereParam = nil
 	}
 
 	return where, whereParam

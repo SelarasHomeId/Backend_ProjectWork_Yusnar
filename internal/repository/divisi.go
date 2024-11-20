@@ -61,7 +61,7 @@ func (r *divisi) Find(ctx *abstraction.Context) (data []*model.DivisiEntityModel
 }
 
 func (r *divisi) Count(ctx *abstraction.Context) (data *int, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false ")
+	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false")
 	var count model.DivisiCountDataModel
 	err = r.CheckTrx(ctx).
 		Table("divisi").

@@ -56,7 +56,7 @@ func (r *role) Find(ctx *abstraction.Context) (data []*model.RoleEntityModel, er
 }
 
 func (r *role) Count(ctx *abstraction.Context) (data *int, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "role", "is_delete = @false ")
+	where, whereParam := general.ProcessWhereParam(ctx, "role", "is_delete = @false")
 	var count model.RoleCountDataModel
 	err = r.CheckTrx(ctx).
 		Table("role").

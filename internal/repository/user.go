@@ -70,7 +70,7 @@ func (r *user) Find(ctx *abstraction.Context) (data []*model.UserEntityModel, er
 }
 
 func (r *user) Count(ctx *abstraction.Context) (data *int, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false ")
+	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false")
 	var count model.UserCountDataModel
 	err = r.CheckTrx(ctx).
 		Table("user").
