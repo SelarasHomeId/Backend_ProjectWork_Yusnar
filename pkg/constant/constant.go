@@ -2,7 +2,7 @@ package constant
 
 const (
 	APP      = "selarashomeid"
-	PORT     = "3000"
+	PORT     = "4000"
 	VERSION  = "1.0.0"
 	BASE_URL = "https://oryx-credible-buzzard.ngrok-free.app"
 
