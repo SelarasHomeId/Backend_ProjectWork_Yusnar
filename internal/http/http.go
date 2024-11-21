@@ -25,8 +25,8 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	)
 
 	// index
-	e.GET("/", func(c echo.Context) error {
-		message := fmt.Sprintf("Hello there, welcome to app %s version %s.", APP, VERSION)
+	e.GET("/api", func(c echo.Context) error {
+		message := fmt.Sprintf("Hello there, welcome to api %s version %s.", APP, VERSION)
 		return c.String(http.StatusOK, message)
 	})
 
@@ -34,10 +34,11 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// routes
-	test.NewHandler(f).Route(e.Group("/test"))
-	auth.NewHandler(f).Route(e.Group("/auth"))
-	user.NewHandler(f).Route(e.Group("/user"))
-	role.NewHandler(f).Route(e.Group("/role"))
-	divisi.NewHandler(f).Route(e.Group("/divisi"))
-	notifikasi.NewHandler(f).Route(e.Group("/notifikasi"))
+	api := e.Group("/api")
+	test.NewHandler(f).Route(api.Group("/test"))
+	auth.NewHandler(f).Route(api.Group("/auth"))
+	user.NewHandler(f).Route(api.Group("/user"))
+	role.NewHandler(f).Route(api.Group("/role"))
+	divisi.NewHandler(f).Route(api.Group("/divisi"))
+	notifikasi.NewHandler(f).Route(api.Group("/notifikasi"))
 }

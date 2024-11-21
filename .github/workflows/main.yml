@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: ["prod"]
+    branches: ["development"]
 
 jobs:
   build:
@@ -49,4 +49,4 @@ jobs:
             docker stop ${{vars.DOCKER_CONTAINER}}
             docker rm ${{vars.DOCKER_CONTAINER}}
             docker rmi ${{vars.DOCKER_IMAGE}}
-            docker run --name ${{vars.DOCKER_CONTAINER}} -d -p ${{vars.DOCKER_PORT}}:${{vars.DOCKER_PORT}} -e DB_HOST=${{secrets.DB_HOST}} -e DB_USER=${{secrets.DB_USER}} -e DB_PASS=${{secrets.DB_PASS}} -e DB_PORT=${{secrets.DB_PORT}} -e DB_NAME=${{secrets.DB_NAME}} -e GORM_LEVEL=${{secrets.GORM_LEVEL}} -e LOGRUS_LEVEL=${{secrets.LOGRUS_LEVEL}} -e SECRET_KEY=${{secrets.SECRET_KEY}} ${{vars.DOCKER_IMAGE}}
+            docker run --name ${{vars.DOCKER_CONTAINER}} -d -p ${{vars.DOCKER_PORT}}:${{vars.DOCKER_PORT}} -e DB_HOST=${{secrets.DB_HOST}} -e DB_USER=${{secrets.DB_USER}} -e DB_PASS=${{secrets.DB_PASS}} -e DB_PORT=${{secrets.DB_PORT}} -e DB_NAME=${{secrets.DB_NAME}} -e REDIS_HOST=${{secrets.REDIS_HOST}} -e REDIS_PASS=${{secrets.REDIS_PASS}} -e REDIS_PORT=${{secrets.REDIS_PORT}} -e GORM_LEVEL=${{secrets.GORM_LEVEL}} -e LOGRUS_LEVEL=${{secrets.LOGRUS_LEVEL}} -e SECRET_KEY=${{secrets.SECRET_KEY}} -e SECRET_KEY_EKSTERNAL=${{secrets.SECRET_KEY_EKSTERNAL}} -e SMTP_HOST=${{secrets.SMTP_HOST}} -e SMTP_PORT=${{secrets.SMTP_PORT}} -e SENDER_NAME=${{secrets.SENDER_NAME}} -e AUTH_EMAIL=${{secrets.AUTH_EMAIL}} -e AUTH_PASSWORD=${{secrets.AUTH_PASSWORD}} -e CREDENTIALS_DRIVE=${{secrets.CREDENTIALS_DRIVE}} -e REFRESH_DRIVE=${{secrets.REFRESH_DRIVE}} -e NGROK_AUTHTOKEN=${{secrets.NGROK_AUTHTOKEN}} ${{vars.DOCKER_IMAGE}}
