@@ -49,4 +49,4 @@ jobs:
             docker stop ${{vars.DOCKER_CONTAINER}}
             docker rm ${{vars.DOCKER_CONTAINER}}
             docker rmi ${{vars.DOCKER_IMAGE}}
-            docker run --name ${{vars.DOCKER_CONTAINER}} -d -p ${{vars.DOCKER_PORT}}:${{vars.DOCKER_PORT}} --env-file /var/www/html/selarashomeid/.env ${{vars.DOCKER_IMAGE}}
+            docker run --name ${{vars.DOCKER_CONTAINER}} -d -p ${{vars.DOCKER_PORT}}:${{vars.DOCKER_PORT}} --env-file /var/www/html/selarashomeid/development.env ${{vars.DOCKER_IMAGE}}
