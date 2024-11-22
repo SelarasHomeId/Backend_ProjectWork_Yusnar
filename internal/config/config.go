@@ -66,11 +66,12 @@ func Get() *Configuration {
 
 func Init() *Configuration {
 
-	if err := godotenv.Load(".env"); err != nil {
-		fmt.Println("Production")
-	} else {
-		fmt.Println("Development")
+	if err := godotenv.Load("local.env", "/var/www/html/selarashomeid/development.env"); err != nil {
+		fmt.Println("Error loading .env file, because: ", err.Error())
 	}
+
+	env := os.Getenv("ENV")
+	fmt.Println("run on: ", env)
 
 	defaultConfig.DB.DbHost = os.Getenv("DB_HOST")
 	defaultConfig.DB.DbUser = os.Getenv("DB_USER")
