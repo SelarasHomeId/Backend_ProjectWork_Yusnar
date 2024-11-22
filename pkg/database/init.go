@@ -43,8 +43,6 @@ func (c *dbMySQL) Init() (*gorm.DB, error) {
 		}
 	}
 
-	fmt.Println("ini dsn: ", dsn)
-
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(level),
 	})

@@ -71,7 +71,7 @@ func Init() *Configuration {
 	}
 
 	env := os.Getenv("ENV")
-	fmt.Println("run on: ", env)
+	fmt.Println("run: " + env)
 
 	defaultConfig.DB.DbHost = os.Getenv("DB_HOST")
 	defaultConfig.DB.DbUser = os.Getenv("DB_USER")
