@@ -21,7 +21,7 @@ import (
 func Init(e *echo.Echo, f *factory.Factory) {
 	// index
 	e.GET("/", func(c echo.Context) error {
-		message := fmt.Sprintf("Hello there, welcome to app %s version %s", config.Get().App.App, config.Get().App.Version)
+		message := fmt.Sprintf("Hello there, welcome to app %s version %s.", config.Get().App.App, config.Get().App.Version)
 		return c.String(http.StatusOK, message)
 	})
 
