@@ -9,7 +9,6 @@ import (
 	"selarashomeid/internal/factory"
 	httpselarashomeid "selarashomeid/internal/http"
 	middlewareEcho "selarashomeid/internal/middleware"
-	"selarashomeid/pkg/constant"
 	db "selarashomeid/pkg/database"
 	"selarashomeid/pkg/log"
 	"selarashomeid/pkg/ngrok"
@@ -25,9 +24,6 @@ import (
 // @description This is a doc for selarashomeid.
 
 func main() {
-
-	PORT := constant.PORT
-
 	config.Init()
 
 	log.Init()
@@ -57,7 +53,7 @@ func main() {
 			e.Listener = listener
 			addr = "/"
 		} else {
-			addr = ":" + PORT
+			addr = ":" + config.Get().App.Port
 		}
 		err := e.Start(addr)
 		if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"selarashomeid/pkg/constant"
+	"selarashomeid/internal/config"
 	"selarashomeid/pkg/util/validator"
 
 	"github.com/go-redis/redis/v8"
@@ -15,7 +15,7 @@ import (
 var dbRedis *redis.Client = nil
 
 func Init(e *echo.Echo, redisClient *redis.Client) {
-	var APP = constant.APP
+	var APP = config.Get().App.App
 
 	dbRedis = redisClient
 

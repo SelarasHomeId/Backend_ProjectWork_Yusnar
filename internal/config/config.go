@@ -3,18 +3,26 @@ package config
 import (
 	"fmt"
 	"os"
+	"selarashomeid/pkg/constant"
 	"sync"
 
 	"github.com/joho/godotenv"
 )
 
 type Configuration struct {
+	App     App
 	DB      DB
 	Redis   Redis
 	Logging Logging
 	JWT     JWT
 	Gomail  Gomail
 	Drive   Drive
+}
+
+type App struct {
+	App     string
+	Port    string
+	Version string
 }
 
 type DB struct {
@@ -67,12 +75,21 @@ func Get() *Configuration {
 func Init() *Configuration {
 
 	if err := godotenv.Load("local.env", "/var/www/html/selarashomeid/development.env"); err != nil {
-		fmt.Println("Error loading .env file, because: ", err.Error())
+		fmt.Println(err.Error())
 	}
 
 	env := os.Getenv("ENV")
 	fmt.Println("run: " + env)
 
+	if env == "development" {
+		constant.BASE_URL = "https://yusnar.my.id/api-go-selarashomeid"
+	} else {
+		constant.BASE_URL = "http://localhost:4000"
+	}
+
+	defaultConfig.App.App = os.Getenv("APP")
+	defaultConfig.App.Port = os.Getenv("PORT")
+	defaultConfig.App.Version = os.Getenv("VERSION")
 	defaultConfig.DB.DbHost = os.Getenv("DB_HOST")
 	defaultConfig.DB.DbUser = os.Getenv("DB_USER")
 	defaultConfig.DB.DbPass = os.Getenv("DB_PASS")
