@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"selarashomeid/internal/config"
+	"selarashomeid/pkg/constant"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -16,7 +17,89 @@ import (
 	"google.golang.org/api/option"
 )
 
-func FileToDrive(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
+func InitGoogleDrive() (*drive.Service, *drive.File, error) {
+	credentialsJson := config.Get().Drive.CredentialsDrive
+
+	config, err := google.ConfigFromJSON([]byte(credentialsJson), drive.DriveScope)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	client := getClient(config)
+
+	service, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
+	if err != nil {
+		logrus.Printf("Cannot create the Google Drive service: %v\n", err)
+		return nil, nil, err
+	}
+
+	logrus.Info("Google Drive ready!")
+
+	folderUsed, err := CheckFolderByName(service, constant.DRIVE_FOLDER, "root")
+	if err != nil {
+		logrus.Printf("Cannot check folder by name from Google Drive: %v\n", err)
+		return nil, nil, err
+	}
+
+	if folderUsed == nil {
+		folder, err := CreateFolder(service, "SelarasHomeId", "root")
+		if err != nil {
+			logrus.Printf("Cannot create folder to Google Drive: %v\n", err)
+			return nil, nil, err
+		}
+
+		logrus.Info("Root folder created!")
+		return service, folder, nil
+	} else {
+		logrus.Info("Root folder ready!")
+		return service, folderUsed, nil
+	}
+}
+
+func CheckFolderByName(service *drive.Service, name string, parentId string) (*drive.File, error) {
+	query := fmt.Sprintf("name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false", name, parentId)
+
+	filesList, err := service.Files.List().Q(query).Fields("files(id, name)").Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to search folder: %v", err)
+	}
+
+	if len(filesList.Files) > 0 {
+		return filesList.Files[0], nil
+	}
+
+	return nil, nil
+}
+
+func CreateFolder(service *drive.Service, name string, parentId string) (*drive.File, error) {
+	d := &drive.File{
+		Name:     name,
+		MimeType: "application/vnd.google-apps.folder",
+		Parents:  []string{parentId},
+	}
+
+	folder, err := service.Files.Create(d).Do()
+
+	if err != nil {
+		logrus.Println("Could not create dir: " + err.Error())
+		return nil, err
+	}
+
+	permission := &drive.Permission{
+		Role: "reader",
+		Type: "anyone",
+	}
+	_, err = service.Permissions.Create(folder.Id, permission).Do()
+	if err != nil {
+		logrus.Println("Could not set permission: " + err.Error())
+		return nil, err
+	}
+
+	return folder, nil
+}
+
+func CreateFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
 	f := &drive.File{
 		MimeType: mimeType,
 		Name:     name,
@@ -29,45 +112,25 @@ func FileToDrive(service *drive.Service, name string, mimeType string, content i
 		return nil, err
 	}
 
-	return file, nil
-}
-
-func FolderToDrive(service *drive.Service, name string, parentId string) (*drive.File, error) {
-	d := &drive.File{
-		Name:     name,
-		MimeType: "application/vnd.google-apps.folder",
-		Parents:  []string{parentId},
+	permission := &drive.Permission{
+		Role: "reader",
+		Type: "anyone",
 	}
-
-	file, err := service.Files.Create(d).Do()
-
+	_, err = service.Permissions.Create(file.Id, permission).Do()
 	if err != nil {
-		logrus.Println("Could not create dir: " + err.Error())
+		logrus.Println("Could not set permission: " + err.Error())
 		return nil, err
 	}
 
 	return file, nil
 }
 
-func InitGoogleDrive() (*drive.Service, error) {
-	credentialsJson := config.Get().Drive.CredentialsDrive
-
-	config, err := google.ConfigFromJSON([]byte(credentialsJson), drive.DriveScope)
-
+func GetFile(service *drive.Service, fileID string) (*drive.File, error) {
+	file, err := service.Files.Get(fileID).Fields("*").Do()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve file with ID %s: %v", fileID, err)
 	}
-
-	client := getClient(config)
-
-	service, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
-	if err != nil {
-		logrus.Printf("Cannot create the Google Drive service: %v\n", err)
-		return nil, err
-	}
-
-	logrus.Info("Drive ready!")
-	return service, err
+	return file, nil
 }
 
 func getClient(config *oauth2.Config) *http.Client {
@@ -75,9 +138,9 @@ func getClient(config *oauth2.Config) *http.Client {
 	if err != nil {
 		tok = getTokenFromWeb(config)
 		saveTokenToEnv(tok)
-		logrus.Info("Regenerate token!")
+		logrus.Info("Regenerate token Google Drive!")
 	}
-	logrus.Info("Client found!")
+	logrus.Info("Google Drive client found!")
 	return config.Client(context.Background(), tok)
 }
 

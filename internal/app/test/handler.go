@@ -72,7 +72,7 @@ func (h *handler) TestGomail(c echo.Context) error {
 	return response.SuccessResponse(data).SendSuccess(c)
 }
 
-func (h *handler) TestDrive(c echo.Context) error {
+func (h *handler) TestDriveCreate(c echo.Context) error {
 	cc := c.(*abstraction.Context)
 
 	if err := c.Request().ParseMultipartForm(32 << 20); err != nil {
@@ -83,7 +83,18 @@ func (h *handler) TestDrive(c echo.Context) error {
 	var files []*multipart.FileHeader
 	files = append(files, formFiles...)
 
-	data, err := h.service.TestDrive(cc, files)
+	data, err := h.service.TestDriveCreate(cc, files)
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+
+	return response.SuccessResponse(data).SendSuccess(c)
+}
+
+func (h *handler) TestDriveGetById(c echo.Context) error {
+	cc := c.(*abstraction.Context)
+
+	data, err := h.service.TestDriveGetById(cc, cc.Param("id"))
 	if err != nil {
 		return response.ErrorResponse(err).SendError(c)
 	}
