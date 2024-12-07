@@ -8,7 +8,6 @@ import (
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
 	"selarashomeid/internal/factory"
-	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/gdrive"
 	"selarashomeid/pkg/gomail"
@@ -26,14 +25,14 @@ type Service interface {
 }
 
 type service struct {
-	Repository repository.Test
+	Repository repository.Banner
 	Db         *gorm.DB
 	sDrive     *drive.Service
 	fDrive     *drive.File
 }
 
 func NewService(f *factory.Factory) Service {
-	repository := f.TestRepository
+	repository := f.BannerRepository
 	db := f.Db
 	sDrive := f.GDrive.Service
 	fDrive := f.GDrive.Folder
@@ -76,15 +75,6 @@ func (s *service) TestDriveCreate(ctx *abstraction.Context, files []*multipart.F
 		if err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
-
-		s.Repository.Create(ctx, &model.TestEntityModel{
-			Context: ctx,
-			TestEntity: model.TestEntity{
-				FileId:   newFile.Id,
-				FileName: newFile.Name,
-				IsDelete: false,
-			},
-		})
 
 		uploadedFiles = append(uploadedFiles, newFile.Name)
 	}

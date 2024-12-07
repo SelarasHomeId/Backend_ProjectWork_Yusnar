@@ -22,7 +22,7 @@ type Factory struct {
 }
 
 type Repository_initiated struct {
-	TestRepository       repository.Test
+	BannerRepository     repository.Banner
 	UserRepository       repository.User
 	DivisiRepository     repository.Divisi
 	RoleRepository       repository.Role
@@ -70,9 +70,9 @@ func (f *Factory) SetupRepository() {
 		panic("Failed setup repository, db is undefined")
 	}
 
-	f.TestRepository = repository.NewTest(f.Db)
 	f.UserRepository = repository.NewUser(f.Db)
 	f.DivisiRepository = repository.NewDivisi(f.Db)
 	f.RoleRepository = repository.NewRole(f.Db)
 	f.NotifikasiRepository = repository.NewNotifikasi(f.Db)
+	f.BannerRepository = repository.NewBanner(f.Db)
 }

@@ -2,18 +2,18 @@ package model
 
 import "selarashomeid/internal/abstraction"
 
-type TestEntity struct {
+type BannerEntity struct {
 	FileId   string `json:"file_id"`
 	FileName string `json:"file_name"`
 	IsDelete bool   `json:"is_delete"`
 }
 
-// TestEntityModel ...
-type TestEntityModel struct {
+// BannerEntityModel ...
+type BannerEntityModel struct {
 	ID int `json:"id" param:"id" form:"id" validate:"number,min=1" gorm:"primaryKey;autoIncrement;"`
 
 	// entity
-	TestEntity
+	BannerEntity
 
 	abstraction.Entity
 
@@ -22,8 +22,8 @@ type TestEntityModel struct {
 }
 
 // TableName ...
-func (TestEntityModel) TableName() string {
-	return "test"
+func (BannerEntityModel) TableName() string {
+	return "banner"
 }
 
 type BannerCountDataModel struct {
