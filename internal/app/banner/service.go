@@ -8,6 +8,7 @@ import (
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/gdrive"
 	"selarashomeid/pkg/util/response"
+	"strings"
 
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
@@ -49,11 +50,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
 		}
 		res = append(res, map[string]interface{}{
-			"id": v.ID,
-			"file": map[string]interface{}{
-				"content": fileDrive.WebContentLink,
-				"view":    fileDrive.WebViewLink,
-			},
+			"id":         v.ID,
+			"link":       strings.ReplaceAll(fileDrive.WebContentLink, "&export=download", ""),
 			"file_name":  v.FileName,
 			"is_delete":  v.IsDelete,
 			"created_at": v.CreatedAt,
