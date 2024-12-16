@@ -167,10 +167,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BannerUpdateRequ
 			newbannerData.FileName = *payload.FileName
 		}
 		if payload.Files != nil {
-			// err := gdrive.DeleteFile(s.sDrive, bannerData.FileId)
-			// if err != nil {
-			// 	return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			// }
+			err := gdrive.DeleteFile(s.sDrive, bannerData.FileId)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 
 			file := payload.Files[0]
 
