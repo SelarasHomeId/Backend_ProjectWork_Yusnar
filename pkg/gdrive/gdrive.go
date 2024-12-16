@@ -133,6 +133,15 @@ func GetFile(service *drive.Service, fileID string) (*drive.File, error) {
 	return file, nil
 }
 
+func DeleteFile(service *drive.Service, fileID string) error {
+	err := service.Files.Delete(fileID).Do()
+	if err != nil {
+		return fmt.Errorf("unable to delete file with ID %s: %v", fileID, err)
+	}
+	logrus.Println("File successfully deleted")
+	return nil
+}
+
 func getClient(config *oauth2.Config) *http.Client {
 	tok, err := tokenFromEnv()
 	if err != nil {

@@ -1,6 +1,11 @@
 package model
 
-import "selarashomeid/internal/abstraction"
+import (
+	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/util/general"
+
+	"gorm.io/gorm"
+)
 
 type NotifikasiEntity struct {
 	Title   string `json:"title"`
@@ -32,4 +37,14 @@ type NotifikasiCountDataModel struct {
 	CountTotal  int `json:"count_total"`
 	CountRead   int `json:"count_read"`
 	CountUnread int `json:"count_unread"`
+}
+
+func (m *NotifikasiEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+	m.UpdatedAt = general.NowLocal()
+	return
+}
+
+func (m *NotifikasiEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.CreatedAt = *general.NowLocal()
+	return
 }

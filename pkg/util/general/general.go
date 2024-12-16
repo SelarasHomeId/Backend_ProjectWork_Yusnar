@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"math/rand"
+	"path/filepath"
 	"regexp"
 	"selarashomeid/internal/abstraction"
 	"strconv"
@@ -348,4 +349,16 @@ func ParseTemplateEmail(templateFileName string, data interface{}) string {
 func ProcessHTMLResponseEmail(filePath, placeholder, value string) string {
 	content, _ := ioutil.ReadFile(filePath)
 	return strings.Replace(string(content), placeholder, value, -1)
+}
+
+func ValidateImage(filename string) (bool, string) {
+	imageExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg"}
+	ext := strings.ToLower(filepath.Ext(filename))
+	fullFileName := strings.ReplaceAll(strings.TrimSuffix(filename, ext), ".", "") + ext
+	for _, validExt := range imageExtensions {
+		if ext == validExt {
+			return true, fullFileName
+		}
+	}
+	return false, fullFileName
 }

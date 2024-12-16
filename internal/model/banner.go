@@ -1,6 +1,11 @@
 package model
 
-import "selarashomeid/internal/abstraction"
+import (
+	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/util/general"
+
+	"gorm.io/gorm"
+)
 
 type BannerEntity struct {
 	FileId   string `json:"file_id"`
@@ -28,4 +33,14 @@ func (BannerEntityModel) TableName() string {
 
 type BannerCountDataModel struct {
 	Count int `json:"count"`
+}
+
+func (m *BannerEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+	m.UpdatedAt = general.NowLocal()
+	return
+}
+
+func (m *BannerEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.CreatedAt = *general.NowLocal()
+	return
 }

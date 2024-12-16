@@ -1,6 +1,11 @@
 package model
 
-import "selarashomeid/internal/abstraction"
+import (
+	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/util/general"
+
+	"gorm.io/gorm"
+)
 
 type DivisiEntity struct {
 	Name     string `json:"name"`
@@ -27,4 +32,14 @@ func (DivisiEntityModel) TableName() string {
 
 type DivisiCountDataModel struct {
 	Count int `json:"count"`
+}
+
+func (m *DivisiEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+	m.UpdatedAt = general.NowLocal()
+	return
+}
+
+func (m *DivisiEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.CreatedAt = *general.NowLocal()
+	return
 }

@@ -11,6 +11,9 @@ import (
 type Banner interface {
 	Find(ctx *abstraction.Context) (data []*model.BannerEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
+	FindById(ctx *abstraction.Context, id int) (*model.BannerEntityModel, error)
+	Create(ctx *abstraction.Context, data *model.BannerEntityModel) *gorm.DB
+	Update(ctx *abstraction.Context, data *model.BannerEntityModel) *gorm.DB
 }
 
 type banner struct {
@@ -50,4 +53,26 @@ func (r *banner) Count(ctx *abstraction.Context) (data *int, err error) {
 		Error
 	data = &count.Count
 	return
+}
+
+func (r *banner) FindById(ctx *abstraction.Context, id int) (*model.BannerEntityModel, error) {
+	conn := r.CheckTrx(ctx)
+
+	var data model.BannerEntityModel
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (r *banner) Create(ctx *abstraction.Context, data *model.BannerEntityModel) *gorm.DB {
+	return r.CheckTrx(ctx).Create(data)
+}
+
+func (r *banner) Update(ctx *abstraction.Context, data *model.BannerEntityModel) *gorm.DB {
+	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
 }

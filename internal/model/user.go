@@ -2,6 +2,9 @@ package model
 
 import (
 	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/util/general"
+
+	"gorm.io/gorm"
 )
 
 type UserEntity struct {
@@ -38,4 +41,14 @@ func (UserEntityModel) TableName() string {
 
 type UserCountDataModel struct {
 	Count int `json:"count"`
+}
+
+func (m *UserEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+	m.UpdatedAt = general.NowLocal()
+	return
+}
+
+func (m *UserEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.CreatedAt = *general.NowLocal()
+	return
 }
