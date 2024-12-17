@@ -122,6 +122,7 @@ func CreateFile(service *drive.Service, name string, mimeType string, content io
 		return nil, err
 	}
 
+	logrus.Println("File successfully created")
 	return file, nil
 }
 

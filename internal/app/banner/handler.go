@@ -95,3 +95,50 @@ func (h handler) Delete(c echo.Context) (err error) {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h handler) GetPopup(c echo.Context) (err error) {
+	data, err := h.service.GetPopup(c.(*abstraction.Context))
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}
+
+func (h handler) UpdatePopup(c echo.Context) (err error) {
+	payload := new(dto.BannerUpdatePopupRequest)
+
+	if err = c.Bind(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
+	}
+	if err = c.Validate(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
+	}
+	if err := c.Request().ParseMultipartForm(64 << 20); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind multipart/form-data").SendError(c)
+	}
+
+	payload.Files = c.Request().MultipartForm.File["file"]
+
+	data, err := h.service.UpdatePopup(c.(*abstraction.Context), payload)
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}
+
+func (h handler) SetPopup(c echo.Context) (err error) {
+	payload := new(dto.BannerSetPopupRequest)
+
+	if err = c.Bind(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
+	}
+	if err = c.Validate(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
+	}
+
+	data, err := h.service.SetPopup(c.(*abstraction.Context), payload)
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}

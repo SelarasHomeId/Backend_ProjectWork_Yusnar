@@ -11,6 +11,7 @@ type BannerEntity struct {
 	FileId   string `json:"file_id"`
 	FileName string `json:"file_name"`
 	IsDelete bool   `json:"is_delete"`
+	IsPopup  bool   `json:"is_popup"`
 }
 
 // BannerEntityModel ...
