@@ -190,17 +190,17 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BannerUpdateRequ
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), fmt.Sprintf("file format for %s is not approved", file.Filename))
 			}
 
-			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
-			if err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
-
 			newFile, err := gdrive.CreateFile(s.sDrive, fullFileName, "application/octet-stream", f, s.fDrive.Id)
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 
 			newbannerData.FileId = newFile.Id
+
+			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		if err = s.BannerRepository.Update(ctx, newbannerData).Error; err != nil {
@@ -310,17 +310,17 @@ func (s *service) UpdatePopup(ctx *abstraction.Context, payload *dto.BannerUpdat
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), fmt.Sprintf("file format for %s is not approved", file.Filename))
 			}
 
-			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
-			if err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
-
 			newFile, err := gdrive.CreateFile(s.sDrive, fullFileName, "application/octet-stream", f, s.fDrive.Id)
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 
 			newbannerData.FileId = newFile.Id
+
+			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		if err = s.BannerRepository.Update(ctx, newbannerData).Error; err != nil {
