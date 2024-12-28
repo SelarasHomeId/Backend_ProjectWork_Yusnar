@@ -47,7 +47,7 @@ func (r *divisi) Create(ctx *abstraction.Context, data *model.DivisiEntityModel)
 }
 
 func (r *divisi) Find(ctx *abstraction.Context) (data []*model.DivisiEntityModel, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false")
+	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false AND id NOT IN (1)")
 	limit, offset := general.ProcessLimitOffset(ctx)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
@@ -61,7 +61,7 @@ func (r *divisi) Find(ctx *abstraction.Context) (data []*model.DivisiEntityModel
 }
 
 func (r *divisi) Count(ctx *abstraction.Context) (data *int, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false")
+	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false AND id NOT IN (1)")
 	var count model.DivisiCountDataModel
 	err = r.CheckTrx(ctx).
 		Table("divisi").

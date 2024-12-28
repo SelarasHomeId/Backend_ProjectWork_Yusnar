@@ -227,6 +227,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		case "banner":
 			where += " AND (LOWER(file_name) LIKE @search_file_name)"
 			whereParam["search_file_name"] = val
+		case "workspace":
+			where += " AND (LOWER(name) LIKE @search_name)"
+			whereParam["search_name"] = val
 		}
 	}
 	if ctx.QueryParam("id") != "" {

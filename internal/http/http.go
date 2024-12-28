@@ -12,6 +12,7 @@ import (
 	"selarashomeid/internal/app/role"
 	"selarashomeid/internal/app/test"
 	user "selarashomeid/internal/app/user"
+	"selarashomeid/internal/app/workspace"
 	"selarashomeid/internal/config"
 	"selarashomeid/internal/factory"
 
@@ -31,10 +32,11 @@ func Init(e *echo.Echo, f *factory.Factory) {
 
 	// routes
 	test.NewHandler(f).Route(e.Group("/test"))
+	banner.NewHandler(f).Route(e.Group("/banner"))
 	auth.NewHandler(f).Route(e.Group("/auth"))
 	user.NewHandler(f).Route(e.Group("/user"))
 	role.NewHandler(f).Route(e.Group("/role"))
 	divisi.NewHandler(f).Route(e.Group("/divisi"))
 	notifikasi.NewHandler(f).Route(e.Group("/notifikasi"))
-	banner.NewHandler(f).Route(e.Group("/banner"))
+	workspace.NewHandler(f).Route(e.Group("/workspace"))
 }

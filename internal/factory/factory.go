@@ -27,6 +27,7 @@ type Repository_initiated struct {
 	DivisiRepository     repository.Divisi
 	RoleRepository       repository.Role
 	NotifikasiRepository repository.Notifikasi
+	WorkspaceRepository  repository.Workspace
 }
 
 type GoogleDrive struct {
@@ -75,4 +76,5 @@ func (f *Factory) SetupRepository() {
 	f.RoleRepository = repository.NewRole(f.Db)
 	f.NotifikasiRepository = repository.NewNotifikasi(f.Db)
 	f.BannerRepository = repository.NewBanner(f.Db)
+	f.WorkspaceRepository = repository.NewWorkspace(f.Db)
 }
