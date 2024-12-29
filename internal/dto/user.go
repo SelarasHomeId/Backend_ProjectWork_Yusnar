@@ -3,8 +3,8 @@ package dto
 type UserCreateRequest struct {
 	Name     string `json:"name" form:"name" validate:"required"`
 	Email    string `json:"email" form:"email" validate:"required"`
-	RoleId   int    `json:"role_id" form:"role_id"`
-	DivisiId int    `json:"divisi_id" form:"divisi_id"`
+	RoleId   int    `json:"role_id" form:"role_id" validate:"required"`
+	DivisiId int    `json:"divisi_id" form:"divisi_id" validate:"required"`
 }
 
 type UserFindByIDRequest struct {
