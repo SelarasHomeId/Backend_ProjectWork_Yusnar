@@ -26,6 +26,7 @@ type service struct {
 	DivisiRepository    repository.Divisi
 	UserRepository      repository.User
 	WorkspaceRepository repository.Workspace
+	BoardRepository     repository.Board
 
 	DB *gorm.DB
 }
@@ -35,6 +36,7 @@ func NewService(f *factory.Factory) Service {
 		DivisiRepository:    f.DivisiRepository,
 		UserRepository:      f.UserRepository,
 		WorkspaceRepository: f.WorkspaceRepository,
+		BoardRepository:     f.BoardRepository,
 
 		DB: f.Db,
 	}
@@ -181,6 +183,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.DivisiDeleteByID
 		}
 		if divisiData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "divisi not found")
+		}
+
+		if payload.ID == constant.DIVISI_ID_MANAGEMENT {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "divisi data not available to delete")
 		}
 
 		divisiInUserData, err := s.UserRepository.FindByDivisiId(ctx, &payload.ID)

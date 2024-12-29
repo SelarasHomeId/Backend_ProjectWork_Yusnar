@@ -14,6 +14,7 @@ type Workspace interface {
 	FindByDivisiId(ctx *abstraction.Context, divisi_id int) (*model.WorkspaceEntityModel, error)
 	Find(ctx *abstraction.Context) (data []*model.WorkspaceEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
+	FindById(ctx *abstraction.Context, id int) (*model.WorkspaceEntityModel, error)
 }
 
 type workspace struct {
@@ -75,4 +76,18 @@ func (r *workspace) Count(ctx *abstraction.Context) (data *int, err error) {
 		Error
 	data = &count.Count
 	return
+}
+
+func (r *workspace) FindById(ctx *abstraction.Context, id int) (*model.WorkspaceEntityModel, error) {
+	conn := r.CheckTrx(ctx)
+
+	var data model.WorkspaceEntityModel
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }

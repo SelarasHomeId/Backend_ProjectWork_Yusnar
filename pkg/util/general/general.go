@@ -15,12 +15,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// validation email
 func IsValidEmail(email string) bool {
 	emailRegex := `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 	re := regexp.MustCompile(emailRegex)
 	return re.MatchString(email)
 }
 
+// validation phone
 func IsValidPhone(phone string) bool {
 	phoneNumberRegex := `^\+[1-9]\d{1,14}$`
 	re := regexp.MustCompile(phoneNumberRegex)
@@ -101,6 +103,7 @@ func EndOfDay(now time.Time) time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-1), now.Location())
 }
 
+// generate random password
 func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minLowerCase int) string {
 	var password strings.Builder
 	var lowerCharSet string = "abcdedfghijklmnopqrstuvwxyz"
@@ -211,6 +214,8 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 	if whereStr != "" {
 		where += " AND " + whereStr
 	}
+
+	// fill query search
 	if ctx.QueryParam("search") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("search")) + "%"
 		switch searchType {
@@ -230,8 +235,13 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		case "workspace":
 			where += " AND (LOWER(name) LIKE @search_name)"
 			whereParam["search_name"] = val
+		case "board":
+			where += " AND (LOWER(name) LIKE @search_name)"
+			whereParam["search_name"] = val
 		}
 	}
+
+	// fill query filter
 	if ctx.QueryParam("id") != "" {
 		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("id")))
 		where += " AND id = @id"
@@ -314,7 +324,7 @@ func ProcessOrder(ctx *abstraction.Context) string {
 func ValidationOrder(str string) string {
 	str = SanitizeString(str)
 	str = strings.ToLower(str)
-	orderStack := []string{"id", "name", "email"}
+	orderStack := []string{"id", "name", "email", "sort_number"} // fill query order
 	for _, item := range orderStack {
 		if item == str {
 			return str
