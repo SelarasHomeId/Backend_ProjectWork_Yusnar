@@ -22,13 +22,16 @@ type Factory struct {
 }
 
 type Repository_initiated struct {
-	BannerRepository     repository.Banner
-	UserRepository       repository.User
-	DivisiRepository     repository.Divisi
-	RoleRepository       repository.Role
-	NotifikasiRepository repository.Notifikasi
-	WorkspaceRepository  repository.Workspace
-	BoardRepository      repository.Board
+	BannerRepository      repository.Banner
+	UserRepository        repository.User
+	DivisiRepository      repository.Divisi
+	RoleRepository        repository.Role
+	NotifikasiRepository  repository.Notifikasi
+	WorkspaceRepository   repository.Workspace
+	BoardRepository       repository.Board
+	TaskRepository        repository.Task
+	TaskFileRepository    repository.TaskFile
+	TaskCommentRepository repository.TaskComment
 }
 
 type GoogleDrive struct {
@@ -79,4 +82,7 @@ func (f *Factory) SetupRepository() {
 	f.BannerRepository = repository.NewBanner(f.Db)
 	f.WorkspaceRepository = repository.NewWorkspace(f.Db)
 	f.BoardRepository = repository.NewBoard(f.Db)
+	f.TaskRepository = repository.NewTask(f.Db)
+	f.TaskFileRepository = repository.NewTaskFile(f.Db)
+	f.TaskCommentRepository = repository.NewTaskComment(f.Db)
 }

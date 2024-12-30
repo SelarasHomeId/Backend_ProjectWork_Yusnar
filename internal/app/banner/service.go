@@ -15,6 +15,7 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
@@ -57,14 +58,14 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	for _, v := range data {
-		fileDrive, err := gdrive.GetFile(s.sDrive, v.FileId)
+		fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
 		if err != nil {
 			return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
 		}
 		res = append(res, map[string]interface{}{
 			"id": v.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + v.FileId,
+				"view":    "https://lh3.googleusercontent.com/d/" + v.File,
 				"content": fileDrive.WebContentLink,
 			},
 			"file_name":  v.FileName,
@@ -87,14 +88,14 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.BannerFindByID
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	if data != nil {
-		fileDrive, err := gdrive.GetFile(s.sDrive, data.FileId)
+		fileDrive, err := gdrive.GetFile(s.sDrive, data.File)
 		if err != nil {
 			return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
 		}
 		res = map[string]interface{}{
 			"id": data.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + data.FileId,
+				"view":    "https://lh3.googleusercontent.com/d/" + data.File,
 				"content": fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
@@ -111,6 +112,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.BannerFindByID
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.BannerCreateRequest) (map[string]interface{}, error) {
+	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
@@ -132,11 +134,12 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BannerCreateRequ
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+			allFileUploaded = append(allFileUploaded, newFile.Id)
 
 			modelBanner := &model.BannerEntityModel{
 				Context: ctx,
 				BannerEntity: model.BannerEntity{
-					FileId:   newFile.Id,
+					File:     newFile.Id,
 					FileName: newFile.Name,
 					IsDelete: false,
 					IsPopup:  false,
@@ -149,6 +152,12 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BannerCreateRequ
 
 		return nil
 	}); err != nil {
+		for _, v := range allFileUploaded {
+			errDel := gdrive.DeleteFile(s.sDrive, v)
+			if errDel != nil {
+				logrus.Error("error delete file for error trxmanager:", errDel.Error())
+			}
+		}
 		return nil, err
 	}
 	return map[string]interface{}{
@@ -157,6 +166,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BannerCreateRequ
 }
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.BannerUpdateRequest) (map[string]interface{}, error) {
+	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
@@ -194,10 +204,11 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BannerUpdateRequ
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+			allFileUploaded = append(allFileUploaded, newFile.Id)
 
-			newbannerData.FileId = newFile.Id
+			newbannerData.File = newFile.Id
 
-			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
+			err = gdrive.DeleteFile(s.sDrive, bannerData.File)
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -208,6 +219,12 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BannerUpdateRequ
 		}
 		return nil
 	}); err != nil {
+		for _, v := range allFileUploaded {
+			errDel := gdrive.DeleteFile(s.sDrive, v)
+			if errDel != nil {
+				logrus.Error("error delete file for error trxmanager:", errDel.Error())
+			}
+		}
 		return nil, err
 	}
 	return map[string]interface{}{
@@ -253,14 +270,14 @@ func (s *service) GetPopup(ctx *abstraction.Context) (map[string]interface{}, er
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	if data != nil {
-		fileDrive, err := gdrive.GetFile(s.sDrive, data.FileId)
+		fileDrive, err := gdrive.GetFile(s.sDrive, data.File)
 		if err != nil {
 			return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
 		}
 		res = map[string]interface{}{
 			"id": data.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + data.FileId,
+				"view":    "https://lh3.googleusercontent.com/d/" + data.File,
 				"content": fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
@@ -277,6 +294,7 @@ func (s *service) GetPopup(ctx *abstraction.Context) (map[string]interface{}, er
 }
 
 func (s *service) UpdatePopup(ctx *abstraction.Context, payload *dto.BannerUpdatePopupRequest) (map[string]interface{}, error) {
+	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
@@ -314,10 +332,11 @@ func (s *service) UpdatePopup(ctx *abstraction.Context, payload *dto.BannerUpdat
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+			allFileUploaded = append(allFileUploaded, newFile.Id)
 
-			newbannerData.FileId = newFile.Id
+			newbannerData.File = newFile.Id
 
-			err = gdrive.DeleteFile(s.sDrive, bannerData.FileId)
+			err = gdrive.DeleteFile(s.sDrive, bannerData.File)
 			if err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -328,6 +347,12 @@ func (s *service) UpdatePopup(ctx *abstraction.Context, payload *dto.BannerUpdat
 		}
 		return nil
 	}); err != nil {
+		for _, v := range allFileUploaded {
+			errDel := gdrive.DeleteFile(s.sDrive, v)
+			if errDel != nil {
+				logrus.Error("error delete file for error trxmanager:", errDel.Error())
+			}
+		}
 		return nil, err
 	}
 	return map[string]interface{}{

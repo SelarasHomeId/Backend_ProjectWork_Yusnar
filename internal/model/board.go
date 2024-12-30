@@ -46,3 +46,8 @@ func (m *BoardEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	m.CreatedAt = *general.NowLocal()
 	return
 }
+
+type BoardChangesTaskTotal struct {
+	NewBoard *int
+	OldBoard *int
+}

@@ -7,19 +7,18 @@ import (
 	"gorm.io/gorm"
 )
 
-type BannerEntity struct {
+type TaskFileEntity struct {
+	TaskId   int    `json:"task_id"`
 	File     string `json:"file"`
-	FileName string `json:"file_name"`
 	IsDelete bool   `json:"is_delete"`
-	IsPopup  bool   `json:"is_popup"`
 }
 
-// BannerEntityModel ...
-type BannerEntityModel struct {
+// TaskFileEntityModel ...
+type TaskFileEntityModel struct {
 	ID int `json:"id" param:"id" form:"id" validate:"number,min=1" gorm:"primaryKey;autoIncrement;"`
 
 	// entity
-	BannerEntity
+	TaskFileEntity
 
 	abstraction.Entity
 
@@ -28,20 +27,20 @@ type BannerEntityModel struct {
 }
 
 // TableName ...
-func (BannerEntityModel) TableName() string {
-	return "banner"
+func (TaskFileEntityModel) TableName() string {
+	return "task_file"
 }
 
-type BannerCountDataModel struct {
+type TaskFileCountDataModel struct {
 	Count int `json:"count"`
 }
 
-func (m *BannerEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+func (m *TaskFileEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 	m.UpdatedAt = general.NowLocal()
 	return
 }
 
-func (m *BannerEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+func (m *TaskFileEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	m.CreatedAt = *general.NowLocal()
 	return
 }

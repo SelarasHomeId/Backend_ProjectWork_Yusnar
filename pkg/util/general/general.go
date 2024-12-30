@@ -232,12 +232,21 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		case "banner":
 			where += " AND (LOWER(file_name) LIKE @search_file_name)"
 			whereParam["search_file_name"] = val
+		case "notifikasi":
+			where += " AND (LOWER(title) LIKE @search_title OR LOWER(message) LIKE @search_message)"
+			whereParam["search_title"] = val
+			whereParam["search_message"] = val
 		case "workspace":
 			where += " AND (LOWER(name) LIKE @search_name)"
 			whereParam["search_name"] = val
 		case "board":
 			where += " AND (LOWER(name) LIKE @search_name)"
 			whereParam["search_name"] = val
+		case "task":
+			where += " AND (LOWER(title) LIKE @search_title OR LOWER(description) LIKE @search_description OR LOWER(label) LIKE @search_label)"
+			whereParam["search_title"] = val
+			whereParam["search_description"] = val
+			whereParam["search_label"] = val
 		}
 	}
 
@@ -257,6 +266,21 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND LOWER(email) LIKE @email"
 		whereParam["email"] = val
 	}
+	if ctx.QueryParam("title") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("title")) + "%"
+		where += " AND LOWER(title) LIKE @title"
+		whereParam["title"] = val
+	}
+	if ctx.QueryParam("description") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("description")) + "%"
+		where += " AND LOWER(description) LIKE @description"
+		whereParam["description"] = val
+	}
+	if ctx.QueryParam("label") != "" {
+		val := "%" + SanitizeString(ctx.QueryParam("label")) + "%"
+		where += " AND LOWER(label) LIKE @label"
+		whereParam["label"] = val
+	}
 	if ctx.QueryParam("role_id") != "" {
 		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("role_id")))
 		where += " AND role_id = @role_id"
@@ -267,16 +291,42 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND divisi_id = @divisi_id"
 		whereParam["divisi_id"] = val
 	}
+	if ctx.QueryParam("assign_to_user") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("assign_to_user")))
+		valStr := "%" + strconv.Itoa(val) + "%"
+		where += " AND assign_to_user = @assign_to_user"
+		whereParam["assign_to_user"] = valStr
+	}
+	if ctx.QueryParam("created_by") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("created_by")))
+		where += " AND created_by = @created_by"
+		whereParam["created_by"] = val
+	}
+	if ctx.QueryParam("updated_by") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("updated_by")))
+		where += " AND updated_by = @updated_by"
+		whereParam["updated_by"] = val
+	}
 	if ctx.QueryParam("is_locked") != "" {
 		where += " AND is_locked = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_locked"))
 	}
 	if ctx.QueryParam("is_read") != "" {
 		where += " AND is_read = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_read"))
 	}
+	if ctx.QueryParam("is_completed") != "" {
+		where += " AND is_completed = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_completed"))
+	}
 	if ctx.QueryParam("login_from") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("login_from")) + "%"
 		where += " AND LOWER(login_from) LIKE @login_from"
 		whereParam["login_from"] = val
+	}
+	if ctx.QueryParam("due_date") != "" {
+		val := SanitizeStringDateBetween(ctx.QueryParam("due_date"))
+		valDate := strings.Split(val, "_")
+		where += " AND due_date BETWEEN @start_due_date AND @end_due_date"
+		whereParam["start_due_date"] = valDate[0]
+		whereParam["end_due_date"] = valDate[1]
 	}
 	if ctx.QueryParam("created_at") != "" {
 		val := SanitizeStringDateBetween(ctx.QueryParam("created_at"))
@@ -284,6 +334,13 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND created_at BETWEEN @start_created_at AND @end_created_at"
 		whereParam["start_created_at"] = valDate[0]
 		whereParam["end_created_at"] = valDate[1]
+	}
+	if ctx.QueryParam("updated_at") != "" {
+		val := SanitizeStringDateBetween(ctx.QueryParam("updated_at"))
+		valDate := strings.Split(val, "_")
+		where += " AND updated_at BETWEEN @start_updated_at AND @end_updated_at"
+		whereParam["start_updated_at"] = valDate[0]
+		whereParam["end_updated_at"] = valDate[1]
 	}
 
 	return where, whereParam
@@ -324,7 +381,7 @@ func ProcessOrder(ctx *abstraction.Context) string {
 func ValidationOrder(str string) string {
 	str = SanitizeString(str)
 	str = strings.ToLower(str)
-	orderStack := []string{"id", "name", "email", "sort_number"} // fill query order
+	orderStack := []string{"id", "name", "email", "sort_number", "created_at", "label"} // fill query order
 	for _, item := range orderStack {
 		if item == str {
 			return str
@@ -374,4 +431,28 @@ func ValidateImage(filename string) (bool, string) {
 		}
 	}
 	return false, fullFileName
+}
+
+func AssignToUserStringToArray(ids string) []int {
+	idArray := strings.Split(ids, ",")
+
+	var idInts []int
+	for _, id := range idArray {
+		if idInt, err := strconv.Atoi(strings.TrimSpace(id)); err == nil {
+			idInts = append(idInts, idInt)
+		} else {
+			logrus.Println("Kesalahan mengonversi ID:", err)
+		}
+	}
+
+	return idInts
+}
+
+func AssignToUserArrayToString(idInts []int) string {
+	var idStrings []string
+	for _, id := range idInts {
+		idStrings = append(idStrings, strconv.Itoa(id))
+	}
+
+	return strings.Join(idStrings, ",")
 }

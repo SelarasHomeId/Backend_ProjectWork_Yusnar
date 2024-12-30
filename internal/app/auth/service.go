@@ -105,7 +105,11 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err := s.UserRepository.UpdateLoginFrom(ctx, &data.ID, payload.LoginFrom).Error; err != nil {
+		userData := new(model.UserEntityModel)
+		userData.Context = ctx
+		userData.ID = data.ID
+		userData.LoginFrom = payload.LoginFrom
+		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -136,7 +140,11 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 
 func (s *service) Logout(ctx *abstraction.Context) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		if err := s.UserRepository.UpdateLoginFrom(ctx, &ctx.Auth.ID, "").Error; err != nil {
+		userData := new(model.UserEntityModel)
+		userData.Context = ctx
+		userData.ID = ctx.Auth.ID
+		userData.LoginFrom = ""
+		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

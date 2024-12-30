@@ -104,9 +104,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{}
-	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-	}
 	data, err := s.UserRepository.Find(ctx)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -207,7 +204,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 		}
 		if payload.IsLocked != nil {
 			newUserData.IsLocked = *payload.IsLocked
-			if err = s.UserRepository.UpdateLocked(ctx, &newUserData.ID, newUserData.IsLocked).Error; err != nil {
+			if err = s.UserRepository.UpdateLocked(ctx, newUserData).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 		}

@@ -11,6 +11,7 @@ import (
 	"selarashomeid/internal/app/divisi"
 	"selarashomeid/internal/app/notifikasi"
 	"selarashomeid/internal/app/role"
+	"selarashomeid/internal/app/task"
 	"selarashomeid/internal/app/test"
 	user "selarashomeid/internal/app/user"
 	"selarashomeid/internal/app/workspace"
@@ -41,4 +42,5 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	notifikasi.NewHandler(f).Route(e.Group("/notifikasi"))
 	workspace.NewHandler(f).Route(e.Group("/workspace"))
 	board.NewHandler(f).Route(e.Group("/board"))
+	task.NewHandler(f).Route(e.Group("/task"))
 }

@@ -7,19 +7,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type BannerEntity struct {
+type TaskCommentEntity struct {
+	TaskId   int    `json:"task_id"`
+	Comment  string `json:"comment"`
 	File     string `json:"file"`
-	FileName string `json:"file_name"`
 	IsDelete bool   `json:"is_delete"`
-	IsPopup  bool   `json:"is_popup"`
 }
 
-// BannerEntityModel ...
-type BannerEntityModel struct {
+// TaskCommentEntityModel ...
+type TaskCommentEntityModel struct {
 	ID int `json:"id" param:"id" form:"id" validate:"number,min=1" gorm:"primaryKey;autoIncrement;"`
 
 	// entity
-	BannerEntity
+	TaskCommentEntity
 
 	abstraction.Entity
 
@@ -28,20 +28,20 @@ type BannerEntityModel struct {
 }
 
 // TableName ...
-func (BannerEntityModel) TableName() string {
-	return "banner"
+func (TaskCommentEntityModel) TableName() string {
+	return "task_comment"
 }
 
-type BannerCountDataModel struct {
+type TaskCommentCountDataModel struct {
 	Count int `json:"count"`
 }
 
-func (m *BannerEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
+func (m *TaskCommentEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 	m.UpdatedAt = general.NowLocal()
 	return
 }
 
-func (m *BannerEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+func (m *TaskCommentEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	m.CreatedAt = *general.NowLocal()
 	return
 }
