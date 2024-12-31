@@ -28,3 +28,7 @@ type TaskUpdateRequest struct {
 	DueDate      *string `json:"due_date" form:"due_date"`
 	Cover        []*multipart.FileHeader
 }
+
+type TaskFindByIDRequest struct {
+	ID int `param:"id" validate:"required"`
+}

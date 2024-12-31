@@ -40,6 +40,8 @@ func (r *task) FindById(ctx *abstraction.Context, id int) (*model.TaskEntityMode
 	var data model.TaskEntityModel
 	err := conn.
 		Where("id = ? AND is_delete = ?", id, false).
+		Preload("CreateBy").
+		Preload("UpdateBy").
 		First(&data).
 		Error
 	if err != nil {

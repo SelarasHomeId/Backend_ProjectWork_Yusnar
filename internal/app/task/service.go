@@ -24,6 +24,7 @@ type Service interface {
 	Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRequest) (map[string]interface{}, error)
 	FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindByBoardIDRequest) (map[string]interface{}, error)
 	Update(ctx *abstraction.Context, payload *dto.TaskUpdateRequest) (map[string]interface{}, error)
+	FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -168,18 +169,23 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		description := false
+		if v.Description != nil && *v.Description != "" {
+			description = true
+		}
+
 		task := map[string]interface{}{
 			"id":             v.ID,
 			"board_id":       v.BoardId,
 			"title":          v.Title,
-			"description":    v.Description,
+			"description":    description,
 			"assign_to_user": v.AssignToUser,
 			"label":          v.Label,
 			"is_completed":   v.IsCompleted,
 			"due_date":       v.DueDate,
 			"cover":          v.Cover,
-			"file":           nil,
-			"comment":        nil,
+			"file":           len(fileData),
+			"comment":        len(commentData),
 			"is_delete":      v.IsDelete,
 			"created_at":     v.CreatedAt,
 			"updated_at":     v.UpdatedAt,
@@ -193,18 +199,6 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				"name":  v.UpdateBy.Name,
 				"email": v.UpdateBy.Email,
 			},
-		}
-
-		if v.Cover != nil {
-			cover, err := gdrive.GetFile(s.sDrive, *v.Cover)
-			if err != nil {
-				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
-			}
-			task["cover"] = map[string]interface{}{
-				"view":      "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"content":   cover.WebContentLink,
-				"file_name": cover.Name,
-			}
 		}
 
 		if v.AssignToUser != nil {
@@ -221,48 +215,22 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 					"email": dataUser.Email,
 				})
 			}
-			task["assign_to_user"] = assignToUser
+			task["assign_to_user"] = map[string]interface{}{
+				"count": len(assignToUserArr),
+				"data":  assignToUser,
+			}
 		}
 
-		for _, v := range fileData {
-			var resFile []map[string]interface{}
-			fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
+		if v.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *v.Cover)
 			if err != nil {
-				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
-			resFile = append(resFile, map[string]interface{}{
-				"id": v.ID,
-				"file": map[string]interface{}{
-					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
-					"content": fileDrive.WebContentLink,
-					"name":    fileDrive.Name,
-				},
-				"is_delete":  v.IsDelete,
-				"created_at": v.CreatedAt,
-				"updated_at": v.UpdatedAt,
-			})
-			task["file"] = resFile
-		}
-
-		for _, v := range commentData {
-			var resComment []map[string]interface{}
-			fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
-			if err != nil {
-				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
+			task["cover"] = map[string]interface{}{
+				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
+				"content": cover.WebContentLink,
+				"name":    cover.Name,
 			}
-			resComment = append(resComment, map[string]interface{}{
-				"id":      v.ID,
-				"comment": v.Comment,
-				"file": map[string]interface{}{
-					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
-					"content": fileDrive.WebContentLink,
-					"name":    fileDrive.Name,
-				},
-				"is_delete":  v.IsDelete,
-				"created_at": v.CreatedAt,
-				"updated_at": v.UpdatedAt,
-			})
-			task["comment"] = resComment
 		}
 
 		res = append(res, task)
@@ -309,6 +277,15 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			newTaskData.Description = payload.Description
 		}
 		if payload.AssignToUser != nil {
+			for _, v := range payload.AssignToUser {
+				userData, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if userData == nil {
+					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "user assign to not found")
+				}
+			}
 			strAssignToUser := general.AssignToUserArrayToString(payload.AssignToUser)
 			if strAssignToUser == "" {
 				newTaskData.AssignToUser = nil
@@ -405,5 +382,136 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 	}
 	return map[string]interface{}{
 		"message": "success update!",
+	}, nil
+}
+
+func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRequest) (map[string]interface{}, error) {
+	var res map[string]interface{} = nil
+
+	data, err := s.TaskRepository.FindById(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	fileData, err := s.TaskFileRepository.FindByTaskId(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	if data != nil {
+		res = map[string]interface{}{
+			"id":             data.ID,
+			"board_id":       data.BoardId,
+			"title":          data.Title,
+			"description":    data.Description,
+			"assign_to_user": data.AssignToUser,
+			"label":          data.Label,
+			"is_completed":   data.IsCompleted,
+			"due_date":       data.DueDate,
+			"cover":          data.Cover,
+			"file":           nil,
+			"comment":        nil,
+			"is_delete":      data.IsDelete,
+			"created_at":     data.CreatedAt,
+			"updated_at":     data.UpdatedAt,
+			"created_by": map[string]interface{}{
+				"id":    data.CreateBy.ID,
+				"name":  data.CreateBy.Name,
+				"email": data.CreateBy.Email,
+			},
+			"updated_by": map[string]interface{}{
+				"id":    data.UpdateBy.ID,
+				"name":  data.UpdateBy.Name,
+				"email": data.UpdateBy.Email,
+			},
+		}
+
+		if data.AssignToUser != nil {
+			var assignToUser []map[string]interface{}
+			assignToUserArr := general.AssignToUserStringToArray(*data.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				assignToUser = append(assignToUser, map[string]interface{}{
+					"id":    dataUser.ID,
+					"name":  dataUser.Name,
+					"email": dataUser.Email,
+				})
+			}
+			res["assign_to_user"] = map[string]interface{}{
+				"count": len(assignToUserArr),
+				"data":  assignToUser,
+			}
+		}
+
+		if data.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *data.Cover)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			res["cover"] = map[string]interface{}{
+				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
+				"content": cover.WebContentLink,
+				"name":    cover.Name,
+			}
+		}
+
+		var resFile []map[string]interface{}
+		for _, v := range fileData {
+			fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
+			}
+			resFile = append(resFile, map[string]interface{}{
+				"id":      v.ID,
+				"task_id": v.TaskId,
+				"file": map[string]interface{}{
+					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
+					"content": fileDrive.WebContentLink,
+					"name":    fileDrive.Name,
+				},
+				"is_delete":  v.IsDelete,
+				"created_at": v.CreatedAt,
+				"updated_at": v.UpdatedAt,
+			})
+		}
+		res["file"] = map[string]interface{}{
+			"count": len(fileData),
+			"data":  resFile,
+		}
+
+		var resComment []map[string]interface{}
+		for _, v := range commentData {
+			fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
+			}
+			resComment = append(resComment, map[string]interface{}{
+				"id":      v.ID,
+				"task_id": v.TaskId,
+				"comment": v.Comment,
+				"file": map[string]interface{}{
+					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
+					"content": fileDrive.WebContentLink,
+					"name":    fileDrive.Name,
+				},
+				"is_delete":  v.IsDelete,
+				"created_at": v.CreatedAt,
+				"updated_at": v.UpdatedAt,
+			})
+		}
+		res["comment"] = map[string]interface{}{
+			"count": len(commentData),
+			"data":  resComment,
+		}
+
+	}
+
+	return map[string]interface{}{
+		"data": res,
 	}, nil
 }
