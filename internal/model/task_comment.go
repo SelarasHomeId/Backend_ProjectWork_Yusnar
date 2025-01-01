@@ -10,7 +10,6 @@ import (
 type TaskCommentEntity struct {
 	TaskId   int    `json:"task_id"`
 	Comment  string `json:"comment"`
-	File     string `json:"file"`
 	IsDelete bool   `json:"is_delete"`
 }
 
@@ -42,6 +41,6 @@ func (m *TaskCommentEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *TaskCommentEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.NowLocal()
+	// m.CreatedAt = *general.NowLocal()
 	return
 }

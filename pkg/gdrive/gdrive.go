@@ -143,6 +143,17 @@ func DeleteFile(service *drive.Service, fileID string) error {
 	return nil
 }
 
+func RenameFile(service *drive.Service, fileID, newName string) (*drive.File, error) {
+	file := &drive.File{Name: newName}
+
+	updatedFile, err := service.Files.Update(fileID, file).Do()
+	if err != nil {
+		return nil, fmt.Errorf("unable to rename file with ID %s: %v", fileID, err)
+	}
+
+	return updatedFile, nil
+}
+
 func getClient(config *oauth2.Config) *http.Client {
 	tok, err := tokenFromEnv()
 	if err != nil {

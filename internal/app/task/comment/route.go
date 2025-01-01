@@ -1,4 +1,4 @@
-package task
+package comment
 
 import (
 	"selarashomeid/internal/middleware"
@@ -6,13 +6,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h *handler) Route(v *echo.Group) {
+func (h *Handler) Route(v *echo.Group) {
 	v.POST("", h.Create, middleware.Authentication)
+	v.GET("/:task_id", h.FindByTaskId, middleware.Authentication)
 	v.DELETE("/:id", h.Delete, middleware.Authentication)
-	v.GET("/:board_id", h.FindByBoardId, middleware.Authentication)
 	v.PUT("/:id", h.Update, middleware.Authentication)
 	v.GET("/detail/:id", h.FindById, middleware.Authentication)
-
-	h.TaskCommentHandler.Route(v.Group("/comment"))
-	h.TaskFileHandler.Route(v.Group("/file"))
 }

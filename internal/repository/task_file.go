@@ -11,10 +11,10 @@ import (
 
 type TaskFile interface {
 	FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskFileEntityModel, err error)
-	// Create(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB
-	// FindById(ctx *abstraction.Context, id int) (*model.TaskFileEntityModel, error)
-	// Update(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB
-	// CountByBoardIdArr(ctx *abstraction.Context, board_id int) (data *int, err error)
+	CountByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error)
+	Create(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB
+	FindById(ctx *abstraction.Context, id int) (*model.TaskFileEntityModel, error)
+	Update(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB
 }
 
 type task_file struct {
@@ -43,37 +43,37 @@ func (r *task_file) FindByTaskId(ctx *abstraction.Context, task_id int) (data []
 	return
 }
 
-// func (r *task_file) Create(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB {
-// 	return r.CheckTrx(ctx).Create(data)
-// }
+func (r *task_file) CountByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task_file", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
+	var count model.TaskFileCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("task_file").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
+}
 
-// func (r *task_file) FindById(ctx *abstraction.Context, id int) (*model.TaskFileEntityModel, error) {
-// 	conn := r.CheckTrx(ctx)
+func (r *task_file) Create(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB {
+	return r.CheckTrx(ctx).Create(data)
+}
 
-// 	var data model.TaskFileEntityModel
-// 	err := conn.
-// 		Where("id = ? AND is_delete = ?", id, false).
-// 		First(&data).
-// 		Error
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &data, nil
-// }
+func (r *task_file) FindById(ctx *abstraction.Context, id int) (*model.TaskFileEntityModel, error) {
+	conn := r.CheckTrx(ctx)
 
-// func (r *task_file) Update(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB {
-// 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
-// }
+	var data model.TaskFileEntityModel
+	err := conn.
+		Where("id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
 
-// func (r *task_file) CountByBoardIdArr(ctx *abstraction.Context, board_id int) (data *int, err error) {
-// 	where, whereParam := general.ProcessWhereParam(ctx, "task_file", "is_delete = @false"+fmt.Sprintf(" AND board_id = %d", board_id))
-// 	var count model.TaskFileCountDataModel
-// 	err = r.CheckTrx(ctx).
-// 		Table("task_file").
-// 		Select("COUNT(*) AS count").
-// 		Where(where, whereParam).
-// 		Find(&count).
-// 		Error
-// 	data = &count.Count
-// 	return
-// }
+func (r *task_file) Update(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB {
+	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
+}

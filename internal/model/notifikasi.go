@@ -45,6 +45,6 @@ func (m *NotifikasiEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *NotifikasiEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.NowLocal()
+	// m.CreatedAt = *general.NowLocal()
 	return
 }

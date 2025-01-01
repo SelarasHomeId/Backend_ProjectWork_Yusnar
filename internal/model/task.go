@@ -52,7 +52,7 @@ func (m *TaskEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *TaskEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.NowLocal()
+	// m.CreatedAt = *general.NowLocal()
 	m.CreatedBy = m.Context.Auth.ID
 	return
 }

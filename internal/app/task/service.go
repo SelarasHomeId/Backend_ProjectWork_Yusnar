@@ -486,19 +486,10 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 		var resComment []map[string]interface{}
 		for _, v := range commentData {
-			fileDrive, err := gdrive.GetFile(s.sDrive, v.File)
-			if err != nil {
-				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
-			}
 			resComment = append(resComment, map[string]interface{}{
-				"id":      v.ID,
-				"task_id": v.TaskId,
-				"comment": v.Comment,
-				"file": map[string]interface{}{
-					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
-					"content": fileDrive.WebContentLink,
-					"name":    fileDrive.Name,
-				},
+				"id":         v.ID,
+				"task_id":    v.TaskId,
+				"comment":    v.Comment,
 				"is_delete":  v.IsDelete,
 				"created_at": v.CreatedAt,
 				"updated_at": v.UpdatedAt,

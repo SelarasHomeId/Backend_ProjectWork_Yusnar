@@ -291,6 +291,11 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		where += " AND divisi_id = @divisi_id"
 		whereParam["divisi_id"] = val
 	}
+	if ctx.QueryParam("task_id") != "" {
+		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("task_id")))
+		where += " AND task_id = @task_id"
+		whereParam["task_id"] = val
+	}
 	if ctx.QueryParam("assign_to_user") != "" {
 		val, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("assign_to_user")))
 		valStr := "%" + strconv.Itoa(val) + "%"
@@ -455,4 +460,33 @@ func AssignToUserArrayToString(idInts []int) string {
 	}
 
 	return strings.Join(idStrings, ",")
+}
+
+func ValidateFileUpload(filename string) (bool, string) {
+	fileExtensions := []string{
+		// file image
+		".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg",
+		// file document
+		".txt", ".pdf", ".csv", ".docx", ".xlsx", ".pptx",
+		// file data
+		".json", ".xml", ".yml", ".yaml", ".ini", ".log",
+		// file media
+		".mp3", ".wav", ".ogg", ".flac", ".mp4", ".avi", ".mkv", ".webm",
+	}
+
+	ext := strings.ToLower(filepath.Ext(filename))
+	nameWithoutExt := strings.TrimSuffix(filename, ext)
+
+	safeName := strings.ReplaceAll(nameWithoutExt, ".", "")
+	safeName = strings.ReplaceAll(safeName, "/", "")
+	safeName = strings.ReplaceAll(safeName, "\\", "")
+	safeName = strings.ReplaceAll(safeName, " ", "_")
+
+	fullFileName := safeName + ext
+	for _, validExt := range fileExtensions {
+		if ext == validExt {
+			return true, fullFileName
+		}
+	}
+	return false, fullFileName
 }

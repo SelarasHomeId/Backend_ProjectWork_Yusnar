@@ -2,7 +2,6 @@ package model
 
 import (
 	"selarashomeid/internal/abstraction"
-	"selarashomeid/pkg/util/general"
 
 	"gorm.io/gorm"
 )
@@ -34,6 +33,6 @@ func (AffiliateEntityModel) TableName() string {
 }
 
 func (m *AffiliateEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.NowLocal()
+	// m.CreatedAt = *general.NowLocal()
 	return
 }
