@@ -8,6 +8,7 @@ import (
 	"selarashomeid/internal/app/auth"
 	"selarashomeid/internal/app/banner"
 	"selarashomeid/internal/app/board"
+	"selarashomeid/internal/app/crm"
 	"selarashomeid/internal/app/divisi"
 	"selarashomeid/internal/app/notifikasi"
 	"selarashomeid/internal/app/role"
@@ -43,4 +44,5 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	workspace.NewHandler(f).Route(e.Group("/workspace"))
 	board.NewHandler(f).Route(e.Group("/board"))
 	task.NewHandler(f).Route(e.Group("/task"))
+	crm.NewHandler(f).Route(e.Group("/crm"))
 }
