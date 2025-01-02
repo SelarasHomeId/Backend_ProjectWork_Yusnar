@@ -9,6 +9,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/gdrive"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
@@ -34,6 +35,7 @@ type service struct {
 	UserRepository        repository.User
 	TaskFileRepository    repository.TaskFile
 	TaskCommentRepository repository.TaskComment
+	NotifikasiRepository  repository.Notifikasi
 
 	DB     *gorm.DB
 	sDrive *drive.Service
@@ -48,6 +50,7 @@ func NewService(f *factory.Factory) Service {
 		UserRepository:        f.UserRepository,
 		TaskFileRepository:    f.TaskFileRepository,
 		TaskCommentRepository: f.TaskCommentRepository,
+		NotifikasiRepository:  f.NotifikasiRepository,
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
@@ -57,6 +60,16 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		boardData, err := s.BoardRepository.FindById(ctx, *payload.BoardId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -83,6 +96,16 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		newBoardData.ID = *payload.BoardId
 		newBoardData.TaskTotal = boardData.TaskTotal + 1
 		if err = s.BoardRepository.UpdateTaskTotalById(ctx, newBoardData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		modelNotifikasi := new(model.NotifikasiEntityModel)
+		modelNotifikasi.Context = ctx
+		modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s", userLogin.Name)
+		modelNotifikasi.Message = modelTask.Title
+		modelNotifikasi.IsRead = false
+		modelNotifikasi.UserId = userAdmin.ID
+		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

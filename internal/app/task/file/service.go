@@ -13,6 +13,7 @@ import (
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/drive/v3"
@@ -28,8 +29,10 @@ type Service interface {
 }
 
 type service struct {
-	TaskRepository     repository.Task
-	TaskFileRepository repository.TaskFile
+	TaskRepository       repository.Task
+	TaskFileRepository   repository.TaskFile
+	UserRepository       repository.User
+	NotifikasiRepository repository.Notifikasi
 
 	DB     *gorm.DB
 	sDrive *drive.Service
@@ -38,8 +41,10 @@ type service struct {
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		TaskRepository:     f.TaskRepository,
-		TaskFileRepository: f.TaskFileRepository,
+		TaskRepository:       f.TaskRepository,
+		TaskFileRepository:   f.TaskFileRepository,
+		UserRepository:       f.UserRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
@@ -50,6 +55,11 @@ func NewService(f *factory.Factory) Service {
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRequest) (map[string]interface{}, error) {
 	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskData, err := s.TaskRepository.FindById(ctx, *payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -58,6 +68,12 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
 		}
 
+		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var allFileName []string = nil
 		for _, file := range payload.File {
 			f, err := file.Open()
 			if err != nil {
@@ -75,6 +91,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 			allFileUploaded = append(allFileUploaded, newFile.Id)
+			allFileName = append(allFileName, newFile.Name)
 
 			modelTaskFile := &model.TaskFileEntityModel{
 				Context: ctx,
@@ -95,6 +112,16 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 		newTaskData.ID = *payload.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		modelNotifikasi := new(model.NotifikasiEntityModel)
+		modelNotifikasi.Context = ctx
+		modelNotifikasi.Title = fmt.Sprintf("File baru telah ditambahkan oleh %s", userLogin.Name)
+		modelNotifikasi.Message = fmt.Sprintf("File: %s", strings.Join(allFileName, ", "))
+		modelNotifikasi.IsRead = false
+		modelNotifikasi.UserId = userCreatedTask.ID
+		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

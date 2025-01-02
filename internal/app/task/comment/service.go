@@ -2,6 +2,7 @@ package comment
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -27,6 +28,8 @@ type Service interface {
 type service struct {
 	TaskRepository        repository.Task
 	TaskCommentRepository repository.TaskComment
+	UserRepository        repository.User
+	NotifikasiRepository  repository.Notifikasi
 
 	DB     *gorm.DB
 	sDrive *drive.Service
@@ -37,6 +40,8 @@ func NewService(f *factory.Factory) Service {
 	return &service{
 		TaskRepository:        f.TaskRepository,
 		TaskCommentRepository: f.TaskCommentRepository,
+		UserRepository:        f.UserRepository,
+		NotifikasiRepository:  f.NotifikasiRepository,
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
@@ -46,12 +51,22 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskData, err := s.TaskRepository.FindById(ctx, *payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if taskData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
+		}
+
+		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		modelTaskComment := &model.TaskCommentEntityModel{
@@ -72,6 +87,16 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		newTaskData.ID = *payload.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		modelNotifikasi := new(model.NotifikasiEntityModel)
+		modelNotifikasi.Context = ctx
+		modelNotifikasi.Title = fmt.Sprintf("Komentar baru telah ditambahkan oleh %s", userLogin.Name)
+		modelNotifikasi.Message = modelTaskComment.Comment
+		modelNotifikasi.IsRead = false
+		modelNotifikasi.UserId = userCreatedTask.ID
+		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

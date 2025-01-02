@@ -79,7 +79,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err = gomail.SendMail(payload.Email, "Welcome to SelarasHomeId (Login Information)", general.ParseTemplateEmail("./assets/html/notif_create_user.html", struct {
+		if err = gomail.SendMail(payload.Email, "Welcome to SelarasHomeId (Login Information)", general.ParseTemplateEmail("./assets/html/email/notif_login_info.html", struct {
 			NAME     string
 			EMAIL    string
 			PASSWORD string
@@ -207,6 +207,27 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 			if err = s.UserRepository.UpdateLocked(ctx, newUserData).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+			if userData.IsLocked {
+				if err = gomail.SendMail(userData.Email, "Account Locked for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_locked_user.html", struct {
+					NAME  string
+					EMAIL string
+				}{
+					NAME:  userData.Name,
+					EMAIL: userData.Email,
+				})); err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			} else {
+				if err = gomail.SendMail(userData.Email, "Account Unlocked for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_unlocked_user.html", struct {
+					NAME  string
+					EMAIL string
+				}{
+					NAME:  userData.Name,
+					EMAIL: userData.Email,
+				})); err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
@@ -331,7 +352,7 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password_admin.html", struct {
+		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_reset_password.html", struct {
 			NAME      string
 			RESETNAME string
 			EMAIL     string

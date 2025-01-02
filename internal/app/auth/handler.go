@@ -77,9 +77,9 @@ func (h *handler) ValidationResetPassword(c echo.Context) error {
 	}
 	data, err := h.service.ValidationResetPassword(c.(*abstraction.Context), payload)
 	if err != nil {
-		htmlContent := general.ProcessHTMLResponseEmail("assets/html/reset_password_failed.html", "{{.Error}}", err.Error())
+		htmlContent := general.ProcessHTMLResponseEmail("assets/html/webview/reset_password_failed.html", "{{.Error}}", err.Error())
 		return c.HTML(200, htmlContent)
 	}
-	htmlContent := general.ProcessHTMLResponseEmail("assets/html/reset_password_success.html", "{{.Data}}", data)
+	htmlContent := general.ProcessHTMLResponseEmail("assets/html/webview/reset_password_success.html", "{{.Data}}", data)
 	return c.HTML(200, htmlContent)
 }

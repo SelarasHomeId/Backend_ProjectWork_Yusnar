@@ -222,7 +222,7 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 
 		s.DbRedis.Set(context.Background(), *token, *token, 0)
 
-		if err = gomail.SendMail(data.Email, "Forgot Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/forgot_password.html", struct {
+		if err = gomail.SendMail(data.Email, "Forgot Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_forgot_password.html", struct {
 			NAME  string
 			EMAIL string
 			LINK  string
@@ -283,7 +283,7 @@ func (s *service) ValidationResetPassword(ctx *abstraction.Context, payload *dto
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/reset_password_admin.html", struct {
+		if err = gomail.SendMail(userData.Email, "Reset Password for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_reset_password.html", struct {
 			NAME      string
 			RESETNAME string
 			EMAIL     string

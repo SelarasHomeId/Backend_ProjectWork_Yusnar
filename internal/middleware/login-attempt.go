@@ -356,7 +356,7 @@ func (store *LoginAttemptMemoryStore) IncreaseAttempt(c echo.Context, identifier
 				user.LockDuration = 15 * time.Minute
 			case 15 * time.Minute:
 				err = conn.Model(userEntityModel).Where("email = ?", email).Update("is_locked", true).Error
-				err = gomail.SendMail(email, "Account Locked for SelarasHomeId", general.ParseTemplateEmail("./assets/html/notification_locked_user.html", struct {
+				err = gomail.SendMail(email, "Account Locked for SelarasHomeId", general.ParseTemplateEmail("./assets/html/email/notif_locked_user.html", struct {
 					NAME  string
 					EMAIL string
 				}{

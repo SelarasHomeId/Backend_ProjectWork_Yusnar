@@ -19,6 +19,7 @@ type User interface {
 	UpdateLocked(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
 	UpdateLoginFrom(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
 	FindByDivisiId(ctx *abstraction.Context, id *int) (*model.UserEntityModel, error)
+	FindByRoleId(ctx *abstraction.Context, role_id int) (*model.UserEntityModel, error)
 }
 
 type user struct {
@@ -120,6 +121,22 @@ func (r *user) FindByDivisiId(ctx *abstraction.Context, id *int) (*model.UserEnt
 	var data model.UserEntityModel
 	err := conn.
 		Where("divisi_id = ? AND is_delete = ?", id, false).
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (r *user) FindByRoleId(ctx *abstraction.Context, role_id int) (*model.UserEntityModel, error) {
+	conn := r.CheckTrx(ctx)
+
+	var data model.UserEntityModel
+	err := conn.
+		Where("role_id = ? AND is_delete = ?", role_id, false).
+		Preload("Role").
+		Preload("Divisi").
 		First(&data).
 		Error
 	if err != nil {
