@@ -12,6 +12,7 @@ type AffiliateEntity struct {
 	Phone     string `json:"phone"`
 	Instagram string `json:"instagram"`
 	Tiktok    string `json:"tiktok"`
+	Info      string `json:"info"`
 }
 
 // AffiliateEntityModel ...

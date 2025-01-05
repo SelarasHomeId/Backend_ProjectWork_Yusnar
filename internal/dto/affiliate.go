@@ -6,4 +6,5 @@ type AffiliateCreateRequest struct {
 	Phone     *string `json:"phone" form:"phone"`
 	Instagram *string `json:"instagram" form:"instagram"`
 	Tiktok    *string `json:"tiktok" form:"tiktok"`
+	Info      *string `json:"info" form:"info"`
 }

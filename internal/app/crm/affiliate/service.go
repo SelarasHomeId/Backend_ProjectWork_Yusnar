@@ -49,6 +49,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateR
 				Phone:     *payload.Phone,
 				Instagram: *payload.Instagram,
 				Tiktok:    *payload.Tiktok,
+				Info:      *payload.Info,
 			},
 		}
 		if err := s.AffiliateRepository.Create(ctx, modelAffiliate).Error; err != nil {
@@ -84,6 +85,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"email":      v.Email,
 			"instagram":  v.Instagram,
 			"tiktok":     v.Tiktok,
+			"info":       v.Info,
 			"created_at": v.CreatedAt,
 		})
 	}
@@ -113,7 +115,8 @@ func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error
 	f.SetCellValue(sheet, "D1", "Telepon")
 	f.SetCellValue(sheet, "E1", "Instagram")
 	f.SetCellValue(sheet, "F1", "Tiktok")
-	f.SetCellValue(sheet, "G1", "Tanggal")
+	f.SetCellValue(sheet, "G1", "Info")
+	f.SetCellValue(sheet, "H1", "Tanggal")
 	for i, v := range data {
 		colA := fmt.Sprintf("A%d", i+2)
 		colB := fmt.Sprintf("B%d", i+2)
@@ -122,6 +125,7 @@ func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error
 		colE := fmt.Sprintf("E%d", i+2)
 		colF := fmt.Sprintf("F%d", i+2)
 		colG := fmt.Sprintf("G%d", i+2)
+		colH := fmt.Sprintf("H%d", i+2)
 		no := i + 1
 		f.SetCellValue(sheet, colA, no)
 		f.SetCellValue(sheet, colB, v.Name)
@@ -129,7 +133,8 @@ func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error
 		f.SetCellValue(sheet, colD, v.Phone)
 		f.SetCellValue(sheet, colE, v.Instagram)
 		f.SetCellValue(sheet, colF, v.Tiktok)
-		f.SetCellValue(sheet, colG, v.CreatedAt)
+		f.SetCellValue(sheet, colG, v.Info)
+		f.SetCellValue(sheet, colH, v.CreatedAt)
 	}
 
 	var buf bytes.Buffer
