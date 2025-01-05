@@ -32,7 +32,7 @@ func (h *Handler) Create(c echo.Context) (err error) {
 	if err != nil {
 		return response.ErrorResponse(err).SendError(c)
 	}
-	return response.RedirectTo(c, data)
+	return response.RedirectTo(c, *data)
 }
 
 func (h *Handler) Count(c echo.Context) (err error) {

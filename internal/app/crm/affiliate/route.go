@@ -7,9 +7,7 @@ import (
 )
 
 func (h *Handler) Route(v *echo.Group) {
-	v.GET("/post", h.Create) // for url hit
+	v.POST("", h.Create)
 	v.GET("", h.Find, middleware.Authentication)
-	v.GET("/:id", h.FindByID, middleware.Authentication)
-	v.DELETE("/:id", h.DeleteByID, middleware.Authentication)
 	v.GET("/export", h.Export, middleware.Authentication)
 }

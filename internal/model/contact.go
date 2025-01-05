@@ -31,6 +31,10 @@ func (ContactEntityModel) TableName() string {
 	return "contact"
 }
 
+type ContactCountDataModel struct {
+	Count int `json:"count"`
+}
+
 func (m *ContactEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	// m.CreatedAt = *general.NowLocal()
 	return

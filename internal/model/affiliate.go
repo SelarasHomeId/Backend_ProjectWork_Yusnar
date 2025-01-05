@@ -32,6 +32,10 @@ func (AffiliateEntityModel) TableName() string {
 	return "affiliate"
 }
 
+type AffiliateCountDataModel struct {
+	Count int `json:"count"`
+}
+
 func (m *AffiliateEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	// m.CreatedAt = *general.NowLocal()
 	return

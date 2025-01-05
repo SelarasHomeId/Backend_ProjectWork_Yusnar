@@ -1,12 +1,14 @@
 package access
 
 import (
+	"errors"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
@@ -14,7 +16,7 @@ import (
 )
 
 type Service interface {
-	Create(ctx *abstraction.Context, payload *dto.AccessCreateRequest) (*dto.AccessCreateResponse, error)
+	Create(ctx *abstraction.Context, payload *dto.AccessCreateRequest) (*string, error)
 	Count(ctx *abstraction.Context) (*dto.AccesstCountResponse, error)
 }
 
@@ -32,7 +34,8 @@ func NewService(f *factory.Factory) Service {
 	}
 }
 
-func (s *service) Create(ctx *abstraction.Context, payload *dto.AccessCreateRequest) (*dto.AccessCreateResponse, error) {
+func (s *service) Create(ctx *abstraction.Context, payload *dto.AccessCreateRequest) (*string, error) {
+	url := ""
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		modelAccess := &model.AccessEntityModel{
 			Context: ctx,
@@ -43,18 +46,33 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AccessCreateRequ
 		if err := s.AccessRepository.Create(ctx, modelAccess).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+		switch *payload.Module {
+		case "instagram":
+			url = constant.LINK_INSTAGRAM
+		case "tiktok":
+			url = constant.LINK_TIKTOK
+		case "facebook":
+			url = constant.LINK_FACEBOOK
+		case "whatsapp":
+			url = constant.LINK_WHATSAPP
+			if payload.Phone != nil {
+				url += *payload.Phone
+				if payload.Message != nil {
+					url += "?text=" + *payload.Message
+				}
+			}
+		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-	return &dto.AccessCreateResponse{
-		Module:  payload.Module,
-		Phone:   payload.Phone,
-		Message: payload.Message,
-	}, nil
+	return &url, nil
 }
 
 func (s *service) Count(ctx *abstraction.Context) (*dto.AccesstCountResponse, error) {
+	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
+	}
 	data, err := s.AccessRepository.Count(ctx)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
