@@ -247,6 +247,16 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 			whereParam["search_title"] = val
 			whereParam["search_description"] = val
 			whereParam["search_label"] = val
+		case "contact":
+			where += " AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email OR LOWER(phone) LIKE @search_phone)"
+			whereParam["search_name"] = val
+			whereParam["search_email"] = val
+			whereParam["search_phone"] = val
+		case "affiliate":
+			where += " AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email OR LOWER(phone) LIKE @search_phone)"
+			whereParam["search_name"] = val
+			whereParam["search_email"] = val
+			whereParam["search_phone"] = val
 		}
 	}
 
