@@ -370,20 +370,20 @@ func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 func ProcessOrder(ctx *abstraction.Context) string {
 	var (
 		order string
-		o     = "id"
-		ob    = "ASC"
+		ob    = "id"
+		o     = "ASC"
 	)
-	if ctx.QueryParam("order") != "" {
-		o = ValidationOrder(ctx.QueryParam("order"))
-	}
 	if ctx.QueryParam("order_by") != "" {
 		ob = ValidationOrderBy(ctx.QueryParam("order_by"))
 	}
-	order = o + " " + ob
+	if ctx.QueryParam("order") != "" {
+		o = ValidationOrder(ctx.QueryParam("order"))
+	}
+	order = ob + " " + o
 	return order
 }
 
-func ValidationOrder(str string) string {
+func ValidationOrderBy(str string) string {
 	str = SanitizeString(str)
 	str = strings.ToLower(str)
 	orderStack := []string{"id", "name", "email", "sort_number", "created_at", "label"} // fill query order
@@ -395,7 +395,7 @@ func ValidationOrder(str string) string {
 	return "id"
 }
 
-func ValidationOrderBy(str string) string {
+func ValidationOrder(str string) string {
 	str = SanitizeStringOfAlphabet(str)
 	str = strings.ToUpper(str)
 	orderStack := []string{"ASC", "DESC"}
