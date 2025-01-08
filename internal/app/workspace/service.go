@@ -31,7 +31,7 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var (
-		res   []map[string]interface{}
+		res   []map[string]interface{} = nil
 		count *int
 	)
 

@@ -46,7 +46,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 	for _, v := range data {
 		res = append(res, map[string]interface{}{
 			"id":        v.ID,

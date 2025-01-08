@@ -162,7 +162,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 }
 
 func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindByBoardIDRequest) (map[string]interface{}, error) {
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 
 	boardData, err := s.BoardRepository.FindById(ctx, payload.BoardID)
 	if err != nil && err.Error() != "record not found" {

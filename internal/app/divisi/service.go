@@ -92,7 +92,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.DivisiCreateRequ
 }
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
 	}

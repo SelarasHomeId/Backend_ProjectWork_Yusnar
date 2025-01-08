@@ -110,7 +110,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 }
 
 func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCommentFindByTaskIDRequest) (map[string]interface{}, error) {
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 
 	taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 	if err != nil && err.Error() != "record not found" {

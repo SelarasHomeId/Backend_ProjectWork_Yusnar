@@ -170,7 +170,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 }
 
 func (s *service) FindByWorkspaceId(ctx *abstraction.Context, payload *dto.BoardFindByWorkspaceIDRequest) (map[string]interface{}, error) {
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 
 	workspaceData, err := s.WorkspaceRepository.FindById(ctx, payload.WorkspaceID)
 	if err != nil && err.Error() != "record not found" {

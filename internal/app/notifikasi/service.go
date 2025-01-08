@@ -34,7 +34,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
-	var res []map[string]interface{}
+	var res []map[string]interface{} = nil
 	data, err := s.NotifikasiRepository.FindByUserId(ctx, &ctx.Auth.ID)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
