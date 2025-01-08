@@ -12,7 +12,7 @@ type Role interface {
 	FindById(ctx *abstraction.Context, id int) (*model.RoleEntityModel, error)
 	Find(ctx *abstraction.Context) (data []*model.RoleEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
-	Update(ctx *abstraction.Context, data *model.RoleEntityModel) *gorm.DB
+	// Update(ctx *abstraction.Context, data *model.RoleEntityModel) *gorm.DB
 }
 
 type role struct {
@@ -68,6 +68,6 @@ func (r *role) Count(ctx *abstraction.Context) (data *int, err error) {
 	return
 }
 
-func (r *role) Update(ctx *abstraction.Context, data *model.RoleEntityModel) *gorm.DB {
-	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
-}
+// func (r *role) Update(ctx *abstraction.Context, data *model.RoleEntityModel) *gorm.DB {
+// 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
+// }
