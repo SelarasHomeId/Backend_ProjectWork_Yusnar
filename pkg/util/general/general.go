@@ -103,6 +103,14 @@ func EndOfDay(now time.Time) time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, int(time.Second-1), now.Location())
 }
 
+func IsToday(t time.Time) bool {
+	// Dapatkan tanggal hari ini
+	now := NowLocal()
+
+	// Bandingkan tahun, bulan, dan hari
+	return t.Year() == now.Year() && t.Month() == now.Month() && t.Day() == now.Day()
+}
+
 // generate random password
 func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minLowerCase int) string {
 	var password strings.Builder
