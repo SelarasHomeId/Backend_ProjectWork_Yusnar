@@ -12,6 +12,7 @@ func (h *handler) Route(v *echo.Group) {
 	v.GET("/:board_id", h.FindByBoardId, middleware.Authentication)
 	v.PUT("/:id", h.Update, middleware.Authentication)
 	v.GET("/detail/:id", h.FindById, middleware.Authentication)
+	v.GET("", h.Find, middleware.Authentication)
 
 	h.TaskCommentHandler.Route(v.Group("/comment"))
 	h.TaskFileHandler.Route(v.Group("/file"))

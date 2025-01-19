@@ -16,6 +16,10 @@ type Task interface {
 	FindByBoardIdArr(ctx *abstraction.Context, board_id int) (data []*model.TaskEntityModel, err error)
 	CountByBoardIdArr(ctx *abstraction.Context, board_id int) (data *int, err error)
 	UpdateCompleted(ctx *abstraction.Context, data *model.TaskEntityModel) *gorm.DB
+	Find(ctx *abstraction.Context) (data []*model.TaskEntityModel, err error)
+	Count(ctx *abstraction.Context) (data *int, err error)
+	FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error)
+	CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 }
 
 type task struct {
@@ -85,4 +89,68 @@ func (r *task) CountByBoardIdArr(ctx *abstraction.Context, board_id int) (data *
 
 func (r *task) UpdateCompleted(ctx *abstraction.Context, data *model.TaskEntityModel) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update("is_completed", data.IsCompleted)
+}
+
+func (r *task) Find(ctx *abstraction.Context) (data []*model.TaskEntityModel, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false")
+	limit, offset := general.ProcessLimitOffset(ctx)
+	order := general.ProcessOrder(ctx)
+	err = r.CheckTrx(ctx).
+		Where(where, whereParam).
+		Order(order).
+		Limit(limit).
+		Offset(offset).
+		Preload("CreateBy").
+		Preload("UpdateBy").
+		Find(&data).
+		Error
+	return
+}
+
+func (r *task) Count(ctx *abstraction.Context) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false")
+	var count model.TaskCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("task").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
+}
+
+func (r *task) FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "task.is_delete = @false"+fmt.Sprintf(" AND workspace.id = %d", workspace_id))
+	limit, offset := general.ProcessLimitOffset(ctx)
+	order := general.ProcessOrder(ctx)
+	err = r.CheckTrx(ctx).
+		Table("task").
+		Joins("JOIN board ON board.id = task.board_id").
+		Joins("JOIN workspace ON workspace.id = board.workspace_id").
+		Select("task.*").
+		Where(where, whereParam).
+		Order(order).
+		Limit(limit).
+		Offset(offset).
+		Preload("CreateBy").
+		Preload("UpdateBy").
+		Find(&data).
+		Error
+	return
+}
+
+func (r *task) CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "task.is_delete = @false"+fmt.Sprintf(" AND workspace.id = %d", workspace_id))
+	var count model.TaskCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("task").
+		Joins("JOIN board ON board.id = task.board_id").
+		Joins("JOIN workspace ON workspace.id = board.workspace_id").
+		Select("COUNT(task.id) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
 }
