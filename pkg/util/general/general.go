@@ -169,13 +169,21 @@ func SanitizeStringOfNumber(input string) string {
 }
 
 func SanitizeString(input string) string {
-	// Define regex to remove special characters that could be used in SQL injection
+	// Define regex to remove dangerous characters
 	re := regexp.MustCompile(`[%'";()=<>` + "`" + `#\-\[\]]`)
 	sanitized := re.ReplaceAllString(input, "")
 
-	// Only allow letters, numbers, and underscores as per original function logic
+	// Allow letters, numbers, underscores, spaces, and additional safe characters
 	return strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '_' ||
+			r == ' ' ||
+			r == '-' ||
+			r == '.' ||
+			r == ':' ||
+			r == '/' {
 			return r
 		}
 		return -1
