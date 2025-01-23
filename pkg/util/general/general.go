@@ -2,6 +2,7 @@ package general
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"path/filepath"
@@ -515,4 +516,8 @@ func ValidateFileUpload(filename string) (bool, string) {
 		}
 	}
 	return false, fullFileName
+}
+
+func GenerateKeyWatchTask(userId, taskId int) string {
+	return fmt.Sprintf("user_%d_task_%d", userId, taskId)
 }

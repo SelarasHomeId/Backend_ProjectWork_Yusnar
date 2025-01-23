@@ -27,6 +27,7 @@ type TaskUpdateRequest struct {
 	IsCompleted  *bool   `json:"is_completed" form:"is_completed"`
 	DueDate      *string `json:"due_date" form:"due_date"`
 	Cover        []*multipart.FileHeader
+	Watch        *bool `json:"watch" form:"watch"`
 }
 
 type TaskFindByIDRequest struct {

@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,7 +15,9 @@ import (
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
+	"strconv"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
@@ -38,9 +41,10 @@ type service struct {
 	TaskCommentRepository repository.TaskComment
 	NotifikasiRepository  repository.Notifikasi
 
-	DB     *gorm.DB
-	sDrive *drive.Service
-	fDrive *drive.File
+	DB      *gorm.DB
+	DbRedis *redis.Client
+	sDrive  *drive.Service
+	fDrive  *drive.File
 }
 
 func NewService(f *factory.Factory) Service {
@@ -53,9 +57,10 @@ func NewService(f *factory.Factory) Service {
 		TaskCommentRepository: f.TaskCommentRepository,
 		NotifikasiRepository:  f.NotifikasiRepository,
 
-		DB:     f.Db,
-		sDrive: f.GDrive.Service,
-		fDrive: f.GDrive.Folder,
+		DB:      f.Db,
+		DbRedis: f.DbRedis,
+		sDrive:  f.GDrive.Service,
+		fDrive:  f.GDrive.Folder,
 	}
 }
 
@@ -91,6 +96,9 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		if err := s.TaskRepository.Create(ctx, modelTask).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, modelTask.ID)
+		s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
 
 		newBoardData := new(model.BoardEntityModel)
 		newBoardData.Context = ctx
@@ -198,6 +206,18 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			description = true
 		}
 
+		isWatch := false
+		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, v.ID)
+		val, errGetKeyWatch := s.DbRedis.Get(context.Background(), keyWatchTask).Result()
+		if errGetKeyWatch == redis.Nil {
+			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
+		} else if errGetKeyWatch != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		} else {
+			valBool, _ := strconv.ParseBool(val)
+			isWatch = valBool
+		}
+
 		task := map[string]interface{}{
 			"id":             v.ID,
 			"board_id":       v.BoardId,
@@ -223,6 +243,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				"name":  v.UpdateBy.Name,
 				"email": v.UpdateBy.Email,
 			},
+			"watch": isWatch,
 		}
 
 		if v.AssignToUser != nil {
@@ -362,6 +383,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 				}
 			}
 		}
+		if payload.Watch != nil {
+			keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, newTaskData.ID)
+			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(*payload.Watch), 0)
+		}
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -425,6 +450,18 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	if data != nil {
+		isWatch := false
+		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, data.ID)
+		val, errGetKeyWatch := s.DbRedis.Get(context.Background(), keyWatchTask).Result()
+		if errGetKeyWatch == redis.Nil {
+			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
+		} else if errGetKeyWatch != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		} else {
+			valBool, _ := strconv.ParseBool(val)
+			isWatch = valBool
+		}
+
 		res = map[string]interface{}{
 			"id":             data.ID,
 			"board_id":       data.BoardId,
@@ -450,6 +487,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"name":  data.UpdateBy.Name,
 				"email": data.UpdateBy.Email,
 			},
+			"watch": isWatch,
 		}
 
 		if data.AssignToUser != nil {
@@ -577,6 +615,18 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			description = true
 		}
 
+		isWatch := false
+		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, v.ID)
+		val, errGetKeyWatch := s.DbRedis.Get(context.Background(), keyWatchTask).Result()
+		if errGetKeyWatch == redis.Nil {
+			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
+		} else if errGetKeyWatch != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		} else {
+			valBool, _ := strconv.ParseBool(val)
+			isWatch = valBool
+		}
+
 		task := map[string]interface{}{
 			"id":             v.ID,
 			"board_id":       v.BoardId,
@@ -602,6 +652,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"name":  v.UpdateBy.Name,
 				"email": v.UpdateBy.Email,
 			},
+			"watch": isWatch,
 		}
 
 		if v.AssignToUser != nil {
