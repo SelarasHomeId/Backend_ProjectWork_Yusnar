@@ -41,7 +41,7 @@ func (r *board) FindByWorkspaceId(ctx *abstraction.Context, workspace_id int) (*
 	var data model.BoardEntityModel
 	err := conn.
 		Where("workspace_id = ? AND is_delete = ?", workspace_id, false).
-		Order("indeks DESC").
+		Order("sort_number DESC").
 		First(&data).
 		Error
 	if err != nil {
