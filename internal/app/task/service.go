@@ -114,6 +114,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		modelNotifikasi.Message = modelTask.Title
 		modelNotifikasi.IsRead = false
 		modelNotifikasi.UserId = userAdmin.ID
+		modelNotifikasi.TaskId = modelTask.ID
 		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -300,6 +301,16 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 		changesTaskTotal.OldBoard = &taskData.BoardId
 
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		newTaskData := new(model.TaskEntityModel)
 		newTaskData.Context = ctx
 		newTaskData.ID = payload.ID
@@ -386,6 +397,18 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		if payload.Watch != nil {
 			keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, newTaskData.ID)
 			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(*payload.Watch), 0)
+			if *payload.Watch {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Klik untuk melihat detail tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = userCreatedTask.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

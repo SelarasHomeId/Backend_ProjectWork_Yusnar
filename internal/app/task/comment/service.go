@@ -96,6 +96,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		modelNotifikasi.Message = modelTaskComment.Comment
 		modelNotifikasi.IsRead = false
 		modelNotifikasi.UserId = userCreatedTask.ID
+		modelNotifikasi.TaskId = taskData.ID
 		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

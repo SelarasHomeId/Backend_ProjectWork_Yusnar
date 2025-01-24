@@ -8,11 +8,11 @@ import (
 )
 
 type NotifikasiEntity struct {
-	Title   string  `json:"title"`
-	Message string  `json:"message"`
-	IsRead  bool    `json:"is_read"`
-	UserId  int     `json:"user_id"`
-	Link    *string `json:"link"`
+	Title   string `json:"title"`
+	Message string `json:"message"`
+	IsRead  bool   `json:"is_read"`
+	UserId  int    `json:"user_id"`
+	TaskId  int    `json:"task_id"`
 }
 
 // NotifikasiEntityModel ...

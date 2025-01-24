@@ -50,7 +50,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"message":    v.Message,
 			"is_read":    v.IsRead,
 			"user_id":    v.UserId,
-			"link":       v.Link,
+			"task_id":    v.TaskId,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
 		})
