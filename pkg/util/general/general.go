@@ -410,7 +410,7 @@ func ProcessOrder(ctx *abstraction.Context) string {
 	return order
 }
 
-func ValidationOrderBy(str string) string {
+func ValidationOrder(str string) string {
 	str = SanitizeString(str)
 	str = strings.ToLower(str)
 	orderStack := []string{"id", "name", "email", "sort_number", "created_at", "label"} // fill query order
@@ -422,7 +422,7 @@ func ValidationOrderBy(str string) string {
 	return "id"
 }
 
-func ValidationOrder(str string) string {
+func ValidationOrderBy(str string) string {
 	str = SanitizeStringOfAlphabet(str)
 	str = strings.ToUpper(str)
 	orderStack := []string{"ASC", "DESC"}
