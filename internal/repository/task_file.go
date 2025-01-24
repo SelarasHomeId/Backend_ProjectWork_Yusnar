@@ -32,7 +32,7 @@ func NewTaskFile(db *gorm.DB) *task_file {
 func (r *task_file) FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskFileEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_file", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
 	limit, offset := general.ProcessLimitOffset(ctx)
-	order := general.ProcessOrder(ctx)
+	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
 		Order(order).

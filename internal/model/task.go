@@ -18,6 +18,7 @@ type TaskEntity struct {
 	DueDate      *time.Time `json:"due_date"`
 	Cover        *string    `json:"cover"`
 	IsDelete     bool       `json:"is_delete"`
+	SortNumber   int        `json:"sort_number"`
 }
 
 // TaskEntityModel ...

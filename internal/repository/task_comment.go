@@ -32,7 +32,7 @@ func NewTaskComment(db *gorm.DB) *task_comment {
 func (r *task_comment) FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskCommentEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_comment", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
 	limit, offset := general.ProcessLimitOffset(ctx)
-	order := general.ProcessOrder(ctx)
+	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
 		Order(order).

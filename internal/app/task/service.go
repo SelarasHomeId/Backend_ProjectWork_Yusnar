@@ -84,6 +84,16 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
 		}
 
+		dataTaskInBoard, err := s.TaskRepository.FindByBoardId(ctx, *payload.BoardId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		sortNum := 1
+		if dataTaskInBoard != nil {
+			sortNum = dataTaskInBoard.SortNumber + 1
+		}
+
 		modelTask := &model.TaskEntityModel{
 			Context: ctx,
 			TaskEntity: model.TaskEntity{
@@ -91,6 +101,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 				Title:       *payload.Title,
 				IsCompleted: false,
 				IsDelete:    false,
+				SortNumber:  sortNum,
 			},
 		}
 		if err := s.TaskRepository.Create(ctx, modelTask).Error; err != nil {
@@ -192,12 +203,12 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 	}
 
 	for _, v := range data {
-		fileData, err := s.TaskFileRepository.FindByTaskId(ctx, v.ID)
+		countFileData, err := s.TaskFileRepository.CountByTaskId(ctx, v.ID)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, v.ID)
+		countCommentData, err := s.TaskCommentRepository.CountByTaskId(ctx, v.ID)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -229,8 +240,8 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			"is_completed":   v.IsCompleted,
 			"due_date":       v.DueDate,
 			"cover":          v.Cover,
-			"file":           len(fileData),
-			"comment":        len(commentData),
+			"file":           countFileData,
+			"comment":        countCommentData,
 			"is_delete":      v.IsDelete,
 			"created_at":     v.CreatedAt,
 			"updated_at":     v.UpdatedAt,
@@ -244,7 +255,8 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				"name":  v.UpdateBy.Name,
 				"email": v.UpdateBy.Email,
 			},
-			"watch": isWatch,
+			"watch":       isWatch,
+			"sort_number": v.SortNumber,
 		}
 
 		if v.AssignToUser != nil {
@@ -410,6 +422,9 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 				}
 			}
 		}
+		if payload.SortNumber != nil {
+			newTaskData.SortNumber = *payload.SortNumber
+		}
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -510,7 +525,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"name":  data.UpdateBy.Name,
 				"email": data.UpdateBy.Email,
 			},
-			"watch": isWatch,
+			"watch":       isWatch,
+			"sort_number": data.SortNumber,
 		}
 
 		if data.AssignToUser != nil {
@@ -675,7 +691,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"name":  v.UpdateBy.Name,
 				"email": v.UpdateBy.Email,
 			},
-			"watch": isWatch,
+			"watch":       isWatch,
+			"sort_number": v.SortNumber,
 		}
 
 		if v.AssignToUser != nil {

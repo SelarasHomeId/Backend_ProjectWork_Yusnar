@@ -28,6 +28,7 @@ type TaskUpdateRequest struct {
 	DueDate      *string `json:"due_date" form:"due_date"`
 	Cover        []*multipart.FileHeader
 	Watch        *bool `json:"watch" form:"watch"`
+	SortNumber   *int  `json:"sort_number" form:"sort_number"`
 }
 
 type TaskFindByIDRequest struct {

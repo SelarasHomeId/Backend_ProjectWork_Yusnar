@@ -380,16 +380,16 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 
 func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 	var (
-		limit  = 20
+		limit  = 10
 		offset = 1
 	)
 	if ctx.QueryParam("limit") != "" {
-		ps, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("limit")))
-		limit = ps
+		l, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("limit")))
+		limit = l
 	}
 	if ctx.QueryParam("offset") != "" {
-		p, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
-		offset = p
+		o, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
+		offset = o
 	}
 	return limit, (offset - 1) * limit
 }

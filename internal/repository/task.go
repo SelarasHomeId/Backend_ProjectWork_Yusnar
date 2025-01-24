@@ -20,6 +20,7 @@ type Task interface {
 	Count(ctx *abstraction.Context) (data *int, err error)
 	FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error)
 	CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error)
+	FindByBoardId(ctx *abstraction.Context, board_id int) (*model.TaskEntityModel, error)
 }
 
 type task struct {
@@ -153,4 +154,19 @@ func (r *task) CountByWorkspace(ctx *abstraction.Context, workspace_id int) (dat
 		Error
 	data = &count.Count
 	return
+}
+
+func (r *task) FindByBoardId(ctx *abstraction.Context, board_id int) (*model.TaskEntityModel, error) {
+	conn := r.CheckTrx(ctx)
+
+	var data model.TaskEntityModel
+	err := conn.
+		Where("board_id = ? AND is_delete = ?", board_id, false).
+		Order("sort_number DESC").
+		First(&data).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	return &data, nil
 }
