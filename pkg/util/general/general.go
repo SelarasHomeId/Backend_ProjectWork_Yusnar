@@ -380,15 +380,15 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 
 func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 	var (
-		limit  = 10
+		limit  = 20
 		offset = 1
 	)
-	if ctx.QueryParam("page_size") != "" {
-		ps, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("page_size")))
+	if ctx.QueryParam("limit") != "" {
+		ps, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("limit")))
 		limit = ps
 	}
-	if ctx.QueryParam("page") != "" {
-		p, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("page")))
+	if ctx.QueryParam("offset") != "" {
+		p, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
 		offset = p
 	}
 	return limit, (offset - 1) * limit
@@ -397,16 +397,16 @@ func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 func ProcessOrder(ctx *abstraction.Context) string {
 	var (
 		order string
-		ob    = "id"
-		o     = "ASC"
+		o     = "id"
+		ob    = "ASC"
 	)
-	if ctx.QueryParam("order_by") != "" {
-		ob = ValidationOrderBy(ctx.QueryParam("order_by"))
-	}
 	if ctx.QueryParam("order") != "" {
 		o = ValidationOrder(ctx.QueryParam("order"))
 	}
-	order = ob + " " + o
+	if ctx.QueryParam("order_by") != "" {
+		ob = ValidationOrderBy(ctx.QueryParam("order_by"))
+	}
+	order = o + " " + ob
 	return order
 }
 
