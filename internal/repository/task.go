@@ -21,6 +21,7 @@ type Task interface {
 	FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error)
 	CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 	FindByBoardId(ctx *abstraction.Context, board_id int) (*model.TaskEntityModel, error)
+	UpdateToNull(ctx *abstraction.Context, data *model.TaskEntityModel, column string) *gorm.DB
 }
 
 type task struct {
@@ -169,4 +170,8 @@ func (r *task) FindByBoardId(ctx *abstraction.Context, board_id int) (*model.Tas
 		return nil, err
 	}
 	return &data, nil
+}
+
+func (r *task) UpdateToNull(ctx *abstraction.Context, data *model.TaskEntityModel, column string) *gorm.DB {
+	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update(column, nil)
 }

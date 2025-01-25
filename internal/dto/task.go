@@ -29,6 +29,7 @@ type TaskUpdateRequest struct {
 	Cover        []*multipart.FileHeader
 	Watch        *bool `json:"watch" form:"watch"`
 	SortNumber   *int  `json:"sort_number" form:"sort_number"`
+	DeleteCover  *bool `json:"delete_cover" form:"delete_cover"`
 }
 
 type TaskFindByIDRequest struct {

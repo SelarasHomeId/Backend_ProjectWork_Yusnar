@@ -365,39 +365,28 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 		if payload.Description != nil {
 			newTaskData.Description = payload.Description
-		}
-		if payload.AssignToUser != nil {
-			for _, v := range payload.AssignToUser {
-				userData, err := s.UserRepository.FindById(ctx, v)
-				if err != nil && err.Error() != "record not found" {
+			if *payload.Description == "" {
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "description").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				if userData == nil {
-					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "user assign to not found")
-				}
 			}
+		}
+		if payload.AssignToUser != nil {
 			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
-			if strAssignToUser == "" {
-				newTaskData.AssignToUser = nil
-			} else {
-				newTaskData.AssignToUser = &strAssignToUser
+			newTaskData.AssignToUser = &strAssignToUser
+			if strAssignToUser == "0" {
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "assign_to_user").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
 			}
 		}
 		if payload.Label != nil {
-			for _, v := range payload.Label {
-				labelData, err := s.TaskLabelRepository.FindById(ctx, v)
-				if err != nil && err.Error() != "record not found" {
+			strLabel := general.ArrayIntToString(payload.Label)
+			newTaskData.Label = &strLabel
+			if strLabel == "0" {
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "label").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				if labelData == nil {
-					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "label not found")
-				}
-			}
-			strLabel := general.ArrayIntToString(payload.Label)
-			if strLabel == "" {
-				newTaskData.Label = nil
-			} else {
-				newTaskData.Label = &strLabel
 			}
 		}
 		if payload.IsCompleted != nil {
@@ -407,11 +396,17 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			}
 		}
 		if payload.DueDate != nil {
-			parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
-			if err != nil {
-				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
+			if *payload.DueDate != "" {
+				parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
+				if err != nil {
+					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
+				}
+				newTaskData.DueDate = &parsedDueDate
+			} else {
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "due_date").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
 			}
-			newTaskData.DueDate = &parsedDueDate
 		}
 		if payload.Cover != nil {
 			file := payload.Cover[0]
@@ -438,6 +433,16 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			if taskData.Cover != nil {
 				err = gdrive.DeleteFile(s.sDrive, *taskData.Cover)
 				if err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		} else {
+			if payload.DeleteCover != nil && *payload.DeleteCover {
+				errDel := gdrive.DeleteFile(s.sDrive, *taskData.Cover)
+				if errDel != nil {
+					logrus.Error("error delete file for cover:", errDel.Error())
+				}
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "cover").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
