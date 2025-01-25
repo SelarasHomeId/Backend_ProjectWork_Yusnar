@@ -35,6 +35,7 @@ type Repository_initiated struct {
 	AccessRepository      repository.Access
 	ContactRepository     repository.Contact
 	AffiliateRepository   repository.Affiliate
+	TaskLabelRepository   repository.TaskLabel
 }
 
 type GoogleDrive struct {
@@ -91,4 +92,5 @@ func (f *Factory) SetupRepository() {
 	f.AccessRepository = repository.NewAccess(f.Db)
 	f.ContactRepository = repository.NewContact(f.Db)
 	f.AffiliateRepository = repository.NewAffiliate(f.Db)
+	f.TaskLabelRepository = repository.NewTaskLabel(f.Db)
 }

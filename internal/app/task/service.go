@@ -40,6 +40,7 @@ type service struct {
 	TaskFileRepository    repository.TaskFile
 	TaskCommentRepository repository.TaskComment
 	NotifikasiRepository  repository.Notifikasi
+	TaskLabelRepository   repository.TaskLabel
 
 	DB      *gorm.DB
 	DbRedis *redis.Client
@@ -56,6 +57,7 @@ func NewService(f *factory.Factory) Service {
 		TaskFileRepository:    f.TaskFileRepository,
 		TaskCommentRepository: f.TaskCommentRepository,
 		NotifikasiRepository:  f.NotifikasiRepository,
+		TaskLabelRepository:   f.TaskLabelRepository,
 
 		DB:      f.Db,
 		DbRedis: f.DbRedis,
@@ -261,7 +263,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 
 		if v.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.AssignToUserStringToArray(*v.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -288,6 +290,26 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+			}
+		}
+
+		if v.Label != nil {
+			var label []map[string]interface{}
+			labelArr := general.StringToArrayInt(*v.Label)
+			for _, v := range labelArr {
+				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				label = append(label, map[string]interface{}{
+					"id":    dataLabel.ID,
+					"title": dataLabel.Title,
+					"color": dataLabel.Color,
+				})
+			}
+			task["label"] = map[string]interface{}{
+				"count": len(labelArr),
+				"data":  label,
 			}
 		}
 
@@ -354,7 +376,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "user assign to not found")
 				}
 			}
-			strAssignToUser := general.AssignToUserArrayToString(payload.AssignToUser)
+			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
 			if strAssignToUser == "" {
 				newTaskData.AssignToUser = nil
 			} else {
@@ -362,7 +384,21 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			}
 		}
 		if payload.Label != nil {
-			newTaskData.Label = payload.Label
+			for _, v := range payload.Label {
+				labelData, err := s.TaskLabelRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if labelData == nil {
+					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "label not found")
+				}
+			}
+			strLabel := general.ArrayIntToString(payload.Label)
+			if strLabel == "" {
+				newTaskData.Label = nil
+			} else {
+				newTaskData.Label = &strLabel
+			}
 		}
 		if payload.IsCompleted != nil {
 			newTaskData.IsCompleted = *payload.IsCompleted
@@ -531,7 +567,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 		if data.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.AssignToUserStringToArray(*data.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(*data.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -558,6 +594,26 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+			}
+		}
+
+		if data.Label != nil {
+			var label []map[string]interface{}
+			labelArr := general.StringToArrayInt(*data.Label)
+			for _, v := range labelArr {
+				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				label = append(label, map[string]interface{}{
+					"id":    dataLabel.ID,
+					"title": dataLabel.Title,
+					"color": dataLabel.Color,
+				})
+			}
+			res["label"] = map[string]interface{}{
+				"count": len(labelArr),
+				"data":  label,
 			}
 		}
 
@@ -697,7 +753,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 
 		if v.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.AssignToUserStringToArray(*v.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -724,6 +780,26 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+			}
+		}
+
+		if v.Label != nil {
+			var label []map[string]interface{}
+			labelArr := general.StringToArrayInt(*v.Label)
+			for _, v := range labelArr {
+				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				label = append(label, map[string]interface{}{
+					"id":    dataLabel.ID,
+					"title": dataLabel.Title,
+					"color": dataLabel.Color,
+				})
+			}
+			task["label"] = map[string]interface{}{
+				"count": len(labelArr),
+				"data":  label,
 			}
 		}
 

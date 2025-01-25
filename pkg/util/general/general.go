@@ -260,10 +260,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 			where += " AND (LOWER(name) LIKE @search_name)"
 			whereParam["search_name"] = val
 		case "task":
-			where += " AND (LOWER(title) LIKE @search_title OR LOWER(description) LIKE @search_description OR LOWER(label) LIKE @search_label)"
+			where += " AND (LOWER(title) LIKE @search_title OR LOWER(description) LIKE @search_description)"
 			whereParam["search_title"] = val
 			whereParam["search_description"] = val
-			whereParam["search_label"] = val
 		case "contact":
 			where += " AND (LOWER(name) LIKE @search_name OR LOWER(email) LIKE @search_email OR LOWER(phone) LIKE @search_phone)"
 			whereParam["search_name"] = val
@@ -274,6 +273,10 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 			whereParam["search_name"] = val
 			whereParam["search_email"] = val
 			whereParam["search_phone"] = val
+		case "task_label":
+			where += " AND (LOWER(title) LIKE @search_title OR LOWER(color) LIKE @search_color)"
+			whereParam["search_title"] = val
+			whereParam["search_color"] = val
 		}
 	}
 
@@ -465,7 +468,7 @@ func ValidateImage(filename string) (bool, string) {
 	return false, fullFileName
 }
 
-func AssignToUserStringToArray(ids string) []int {
+func StringToArrayInt(ids string) []int {
 	idArray := strings.Split(ids, ",")
 
 	var idInts []int
@@ -480,7 +483,7 @@ func AssignToUserStringToArray(ids string) []int {
 	return idInts
 }
 
-func AssignToUserArrayToString(idInts []int) string {
+func ArrayIntToString(idInts []int) string {
 	var idStrings []string
 	for _, id := range idInts {
 		idStrings = append(idStrings, strconv.Itoa(id))

@@ -23,7 +23,7 @@ type TaskUpdateRequest struct {
 	Title        *string `json:"title" form:"title"`
 	Description  *string `json:"description" form:"description"`
 	AssignToUser []int   `json:"assign_to_user" form:"assign_to_user"`
-	Label        *string `json:"label" form:"label"`
+	Label        []int   `json:"label" form:"label"`
 	IsCompleted  *bool   `json:"is_completed" form:"is_completed"`
 	DueDate      *string `json:"due_date" form:"due_date"`
 	Cover        []*multipart.FileHeader
