@@ -269,11 +269,13 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				assignToUser = append(assignToUser, map[string]interface{}{
-					"id":    dataUser.ID,
-					"name":  dataUser.Name,
-					"email": dataUser.Email,
-				})
+				if dataUser != nil {
+					assignToUser = append(assignToUser, map[string]interface{}{
+						"id":    dataUser.ID,
+						"name":  dataUser.Name,
+						"email": dataUser.Email,
+					})
+				}
 			}
 			task["assign_to_user"] = map[string]interface{}{
 				"count": len(assignToUserArr),
@@ -301,11 +303,13 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				label = append(label, map[string]interface{}{
-					"id":    dataLabel.ID,
-					"title": dataLabel.Title,
-					"color": dataLabel.Color,
-				})
+				if dataLabel != nil {
+					label = append(label, map[string]interface{}{
+						"id":    dataLabel.ID,
+						"title": dataLabel.Title,
+						"color": dataLabel.Color,
+					})
+				}
 			}
 			task["label"] = map[string]interface{}{
 				"count": len(labelArr),
@@ -578,11 +582,13 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				assignToUser = append(assignToUser, map[string]interface{}{
-					"id":    dataUser.ID,
-					"name":  dataUser.Name,
-					"email": dataUser.Email,
-				})
+				if dataUser != nil {
+					assignToUser = append(assignToUser, map[string]interface{}{
+						"id":    dataUser.ID,
+						"name":  dataUser.Name,
+						"email": dataUser.Email,
+					})
+				}
 			}
 			res["assign_to_user"] = map[string]interface{}{
 				"count": len(assignToUserArr),
@@ -610,11 +616,13 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				label = append(label, map[string]interface{}{
-					"id":    dataLabel.ID,
-					"title": dataLabel.Title,
-					"color": dataLabel.Color,
-				})
+				if dataLabel != nil {
+					label = append(label, map[string]interface{}{
+						"id":    dataLabel.ID,
+						"title": dataLabel.Title,
+						"color": dataLabel.Color,
+					})
+				}
 			}
 			res["label"] = map[string]interface{}{
 				"count": len(labelArr),
@@ -764,11 +772,13 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				assignToUser = append(assignToUser, map[string]interface{}{
-					"id":    dataUser.ID,
-					"name":  dataUser.Name,
-					"email": dataUser.Email,
-				})
+				if dataUser != nil {
+					assignToUser = append(assignToUser, map[string]interface{}{
+						"id":    dataUser.ID,
+						"name":  dataUser.Name,
+						"email": dataUser.Email,
+					})
+				}
 			}
 			task["assign_to_user"] = map[string]interface{}{
 				"count": len(assignToUserArr),
@@ -796,11 +806,13 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				if err != nil && err.Error() != "record not found" {
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-				label = append(label, map[string]interface{}{
-					"id":    dataLabel.ID,
-					"title": dataLabel.Title,
-					"color": dataLabel.Color,
-				})
+				if dataLabel != nil {
+					label = append(label, map[string]interface{}{
+						"id":    dataLabel.ID,
+						"title": dataLabel.Title,
+						"color": dataLabel.Color,
+					})
+				}
 			}
 			task["label"] = map[string]interface{}{
 				"count": len(labelArr),
