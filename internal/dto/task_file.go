@@ -3,7 +3,7 @@ package dto
 import "mime/multipart"
 
 type TaskFileCreateRequest struct {
-	TaskId *int `json:"task_id" form:"task_id" validate:"required"`
+	TaskId int `json:"task_id" form:"task_id" validate:"required"`
 	File   []*multipart.FileHeader
 }
 

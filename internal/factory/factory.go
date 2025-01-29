@@ -22,20 +22,22 @@ type Factory struct {
 }
 
 type Repository_initiated struct {
-	BannerRepository      repository.Banner
-	UserRepository        repository.User
-	DivisiRepository      repository.Divisi
-	RoleRepository        repository.Role
-	NotifikasiRepository  repository.Notifikasi
-	WorkspaceRepository   repository.Workspace
-	BoardRepository       repository.Board
-	TaskRepository        repository.Task
-	TaskFileRepository    repository.TaskFile
-	TaskCommentRepository repository.TaskComment
-	AccessRepository      repository.Access
-	ContactRepository     repository.Contact
-	AffiliateRepository   repository.Affiliate
-	TaskLabelRepository   repository.TaskLabel
+	BannerRepository        repository.Banner
+	UserRepository          repository.User
+	DivisiRepository        repository.Divisi
+	RoleRepository          repository.Role
+	NotifikasiRepository    repository.Notifikasi
+	WorkspaceRepository     repository.Workspace
+	BoardRepository         repository.Board
+	TaskRepository          repository.Task
+	TaskFileRepository      repository.TaskFile
+	TaskCommentRepository   repository.TaskComment
+	AccessRepository        repository.Access
+	ContactRepository       repository.Contact
+	AffiliateRepository     repository.Affiliate
+	TaskLabelRepository     repository.TaskLabel
+	TaskChecklistRepository repository.TaskChecklist
+	ChecklistItemRepository repository.ChecklistItem
 }
 
 type GoogleDrive struct {
@@ -93,4 +95,6 @@ func (f *Factory) SetupRepository() {
 	f.ContactRepository = repository.NewContact(f.Db)
 	f.AffiliateRepository = repository.NewAffiliate(f.Db)
 	f.TaskLabelRepository = repository.NewTaskLabel(f.Db)
+	f.TaskChecklistRepository = repository.NewTaskChecklist(f.Db)
+	f.ChecklistItemRepository = repository.NewChecklistItem(f.Db)
 }

@@ -25,7 +25,6 @@ type Service interface {
 	FindByTaskId(ctx *abstraction.Context, payload *dto.TaskFileFindByTaskIDRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteByIDRequest) (map[string]interface{}, error)
 	Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRequest) (map[string]interface{}, error)
-	FindById(ctx *abstraction.Context, payload *dto.TaskFileFindByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -60,7 +59,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		taskData, err := s.TaskRepository.FindById(ctx, *payload.TaskId)
+		taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -96,7 +95,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 			modelTaskFile := &model.TaskFileEntityModel{
 				Context: ctx,
 				TaskFileEntity: model.TaskFileEntity{
-					TaskId:   *payload.TaskId,
+					TaskId:   payload.TaskId,
 					File:     newFile.Id,
 					IsDelete: false,
 				},
@@ -109,7 +108,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 
 		newTaskData := new(model.TaskEntityModel)
 		newTaskData.Context = ctx
-		newTaskData.ID = *payload.TaskId
+		newTaskData.ID = payload.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -261,36 +260,5 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 	}
 	return map[string]interface{}{
 		"message": "success update!",
-	}, nil
-}
-
-func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFileFindByIDRequest) (map[string]interface{}, error) {
-	var res map[string]interface{} = nil
-
-	data, err := s.TaskFileRepository.FindById(ctx, payload.ID)
-	if err != nil && err.Error() != "record not found" {
-		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-	}
-	if data != nil {
-		file, err := gdrive.GetFile(s.sDrive, data.File)
-		if err != nil {
-			return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
-		}
-		res = map[string]interface{}{
-			"id":      data.ID,
-			"task_id": data.TaskId,
-			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + data.File,
-				"content": file.WebContentLink,
-				"name":    file.Name,
-			},
-			"is_delete":  data.IsDelete,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
-		}
-	}
-
-	return map[string]interface{}{
-		"data": res,
 	}, nil
 }

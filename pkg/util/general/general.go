@@ -277,6 +277,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 			where += " AND (LOWER(title) LIKE @search_title OR LOWER(color) LIKE @search_color)"
 			whereParam["search_title"] = val
 			whereParam["search_color"] = val
+		case "task_checklist":
+			where += " AND (LOWER(title) LIKE @search_title)"
+			whereParam["search_title"] = val
 		}
 	}
 

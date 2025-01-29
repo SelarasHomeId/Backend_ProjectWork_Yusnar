@@ -17,4 +17,5 @@ func (h *handler) Route(v *echo.Group) {
 	h.TaskCommentHandler.Route(v.Group("/comment"))
 	h.TaskFileHandler.Route(v.Group("/file"))
 	h.TaskLabelHandler.Route(v.Group("/label"))
+	h.TaskChecklistHandler.Route(v.Group("/checklist"))
 }

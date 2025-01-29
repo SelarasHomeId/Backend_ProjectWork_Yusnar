@@ -11,5 +11,4 @@ func (h *Handler) Route(v *echo.Group) {
 	v.GET("/:task_id", h.FindByTaskId, middleware.Authentication)
 	v.DELETE("/:id", h.Delete, middleware.Authentication)
 	v.PUT("/:id", h.Update, middleware.Authentication)
-	v.GET("/detail/:id", h.FindById, middleware.Authentication)
 }

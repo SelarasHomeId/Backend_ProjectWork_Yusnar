@@ -22,7 +22,6 @@ type Service interface {
 	FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCommentFindByTaskIDRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.TaskCommentDeleteByIDRequest) (map[string]interface{}, error)
 	Update(ctx *abstraction.Context, payload *dto.TaskCommentUpdateRequest) (map[string]interface{}, error)
-	FindById(ctx *abstraction.Context, payload *dto.TaskCommentFindByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -56,7 +55,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		taskData, err := s.TaskRepository.FindById(ctx, *payload.TaskId)
+		taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -72,8 +71,8 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		modelTaskComment := &model.TaskCommentEntityModel{
 			Context: ctx,
 			TaskCommentEntity: model.TaskCommentEntity{
-				TaskId:   *payload.TaskId,
-				Comment:  *payload.Comment,
+				TaskId:   payload.TaskId,
+				Comment:  payload.Comment,
 				IsDelete: false,
 			},
 		}
@@ -84,7 +83,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 
 		newTaskData := new(model.TaskEntityModel)
 		newTaskData.Context = ctx
-		newTaskData.ID = *payload.TaskId
+		newTaskData.ID = payload.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -216,28 +215,5 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskCommentUpdat
 	}
 	return map[string]interface{}{
 		"message": "success update!",
-	}, nil
-}
-
-func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskCommentFindByIDRequest) (map[string]interface{}, error) {
-	var res map[string]interface{} = nil
-
-	data, err := s.TaskCommentRepository.FindById(ctx, payload.ID)
-	if err != nil && err.Error() != "record not found" {
-		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-	}
-	if data != nil {
-		res = map[string]interface{}{
-			"id":         data.ID,
-			"task_id":    data.TaskId,
-			"comment":    data.Comment,
-			"is_delete":  data.IsDelete,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
-		}
-	}
-
-	return map[string]interface{}{
-		"data": res,
 	}, nil
 }

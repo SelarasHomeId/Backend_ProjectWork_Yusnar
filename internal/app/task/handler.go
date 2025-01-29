@@ -3,6 +3,7 @@ package task
 import (
 	"net/http"
 	"selarashomeid/internal/abstraction"
+	taskchecklist "selarashomeid/internal/app/task/checklist"
 	taskcomment "selarashomeid/internal/app/task/comment"
 	taskfile "selarashomeid/internal/app/task/file"
 	tasklabel "selarashomeid/internal/app/task/label"
@@ -16,18 +17,20 @@ import (
 type handler struct {
 	service Service
 
-	TaskCommentHandler taskcomment.Handler
-	TaskFileHandler    taskfile.Handler
-	TaskLabelHandler   tasklabel.Handler
+	TaskCommentHandler   taskcomment.Handler
+	TaskFileHandler      taskfile.Handler
+	TaskLabelHandler     tasklabel.Handler
+	TaskChecklistHandler taskchecklist.Handler
 }
 
 func NewHandler(f *factory.Factory) *handler {
 	return &handler{
 		service: NewService(f),
 
-		TaskCommentHandler: *taskcomment.NewHandler(f),
-		TaskFileHandler:    *taskfile.NewHandler(f),
-		TaskLabelHandler:   *tasklabel.NewHandler(f),
+		TaskCommentHandler:   *taskcomment.NewHandler(f),
+		TaskFileHandler:      *taskfile.NewHandler(f),
+		TaskLabelHandler:     *tasklabel.NewHandler(f),
+		TaskChecklistHandler: *taskchecklist.NewHandler(f),
 	}
 }
 

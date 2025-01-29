@@ -78,7 +78,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		boardData, err := s.BoardRepository.FindById(ctx, *payload.BoardId)
+		boardData, err := s.BoardRepository.FindById(ctx, payload.BoardId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -86,7 +86,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
 		}
 
-		dataTaskInBoard, err := s.TaskRepository.FindByBoardId(ctx, *payload.BoardId)
+		dataTaskInBoard, err := s.TaskRepository.FindByBoardId(ctx, payload.BoardId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -99,13 +99,26 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		modelTask := &model.TaskEntityModel{
 			Context: ctx,
 			TaskEntity: model.TaskEntity{
-				BoardId:     *payload.BoardId,
-				Title:       *payload.Title,
+				BoardId:     payload.BoardId,
+				Title:       payload.Title,
 				IsCompleted: false,
 				IsDelete:    false,
 				SortNumber:  sortNum,
 			},
 		}
+
+		if payload.AssignToUser != nil {
+			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
+			modelTask.AssignToUser = &strAssignToUser
+		}
+		if payload.DueDate != nil {
+			parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
+			}
+			modelTask.DueDate = &parsedDueDate
+		}
+
 		if err := s.TaskRepository.Create(ctx, modelTask).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -115,7 +128,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 
 		newBoardData := new(model.BoardEntityModel)
 		newBoardData.Context = ctx
-		newBoardData.ID = *payload.BoardId
+		newBoardData.ID = payload.BoardId
 		newBoardData.TaskTotal = boardData.TaskTotal + 1
 		if err = s.BoardRepository.UpdateTaskTotalById(ctx, newBoardData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

@@ -3,8 +3,9 @@ package model
 import "selarashomeid/internal/abstraction"
 
 type RoleEntity struct {
-	Name     string `json:"name"`
-	IsDelete bool   `json:"is_delete"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	IsDelete    bool   `json:"is_delete"`
 }
 
 // RoleEntityModel ...

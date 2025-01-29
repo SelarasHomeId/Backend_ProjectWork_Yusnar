@@ -14,7 +14,6 @@ import (
 
 type Service interface {
 	Find(ctx *abstraction.Context) (map[string]interface{}, error)
-	// Update(ctx *abstraction.Context, payload *dto.RoleUpdateRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -46,9 +45,10 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	var res []map[string]interface{} = nil
 	for _, v := range data {
 		res = append(res, map[string]interface{}{
-			"id":        v.ID,
-			"name":      v.Name,
-			"is_delete": v.IsDelete,
+			"id":          v.ID,
+			"name":        v.Name,
+			"description": v.Description,
+			"is_delete":   v.IsDelete,
 		})
 	}
 	return map[string]interface{}{
@@ -56,36 +56,3 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		"data":  res,
 	}, nil
 }
-
-// func (s *service) Update(ctx *abstraction.Context, payload *dto.RoleUpdateRequest) (map[string]interface{}, error) {
-// 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-// 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-// 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-// 		}
-
-// 		roleData, err := s.RoleRepository.FindById(ctx, payload.ID)
-// 		if err != nil && err.Error() != "record not found" {
-// 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-// 		}
-// 		if roleData == nil {
-// 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "role not found")
-// 		}
-
-// 		newRoleData := new(model.RoleEntityModel)
-// 		newRoleData.Context = ctx
-// 		newRoleData.ID = payload.ID
-// 		if payload.Name != nil {
-// 			newRoleData.Name = *payload.Name
-// 		}
-
-// 		if err = s.RoleRepository.Update(ctx, newRoleData).Error; err != nil {
-// 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-// 		}
-// 		return nil
-// 	}); err != nil {
-// 		return nil, err
-// 	}
-// 	return map[string]interface{}{
-// 		"message": "success update!",
-// 	}, nil
-// }

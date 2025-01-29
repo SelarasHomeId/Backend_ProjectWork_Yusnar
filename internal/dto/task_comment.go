@@ -1,8 +1,8 @@
 package dto
 
 type TaskCommentCreateRequest struct {
-	TaskId  *int    `json:"task_id" form:"task_id" validate:"required"`
-	Comment *string `json:"comment" form:"comment" validate:"required"`
+	TaskId  int    `json:"task_id" form:"task_id" validate:"required"`
+	Comment string `json:"comment" form:"comment" validate:"required"`
 }
 
 type TaskCommentFindByTaskIDRequest struct {
