@@ -37,7 +37,9 @@ func (ChecklistItemEntityModel) TableName() string {
 }
 
 type ChecklistItemCountDataModel struct {
-	Count int `json:"count"`
+	Count          int `json:"count"`
+	CountCompleted int `json:"count_completed"`
+	CountTotal     int `json:"count_total"`
 }
 
 func (m *ChecklistItemEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {

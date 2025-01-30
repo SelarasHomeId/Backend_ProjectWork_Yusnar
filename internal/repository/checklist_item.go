@@ -18,6 +18,7 @@ type ChecklistItem interface {
 	FindById(ctx *abstraction.Context, id int) (*model.ChecklistItemEntityModel, error)
 	UpdateToNull(ctx *abstraction.Context, data *model.ChecklistItemEntityModel, column string) *gorm.DB
 	UpdateCompleted(ctx *abstraction.Context, data *model.ChecklistItemEntityModel) *gorm.DB
+	CountByTaskId(ctx *abstraction.Context, task_id int) (is_check *int, total_check *int, err error)
 }
 
 type checklist_item struct {
@@ -102,4 +103,23 @@ func (r *checklist_item) UpdateToNull(ctx *abstraction.Context, data *model.Chec
 
 func (r *checklist_item) UpdateCompleted(ctx *abstraction.Context, data *model.ChecklistItemEntityModel) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update("is_completed", data.IsCompleted)
+}
+
+func (r *checklist_item) CountByTaskId(ctx *abstraction.Context, task_id int) (is_check *int, total_check *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "checklist_item", "checklist_item.is_delete = @false"+fmt.Sprintf(" AND task.id = %d", task_id))
+	var count model.ChecklistItemCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("checklist_item").
+		Joins("JOIN task_checklist ON task_checklist.id = checklist_item.task_checklist_id").
+		Joins("JOIN task ON task.id = task_checklist.task_id").
+		Select(`
+			COUNT(checklist_item.id) AS count_total, 
+			COUNT(CASE WHEN checklist_item.is_completed = TRUE THEN 1 END) AS count_completed
+		`).
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	is_check = &count.CountCompleted
+	total_check = &count.CountTotal
+	return
 }

@@ -33,14 +33,16 @@ type Service interface {
 }
 
 type service struct {
-	TaskRepository        repository.Task
-	BoardRepository       repository.Board
-	WorkspaceRepository   repository.Workspace
-	UserRepository        repository.User
-	TaskFileRepository    repository.TaskFile
-	TaskCommentRepository repository.TaskComment
-	NotifikasiRepository  repository.Notifikasi
-	TaskLabelRepository   repository.TaskLabel
+	TaskRepository          repository.Task
+	BoardRepository         repository.Board
+	WorkspaceRepository     repository.Workspace
+	UserRepository          repository.User
+	TaskFileRepository      repository.TaskFile
+	TaskCommentRepository   repository.TaskComment
+	NotifikasiRepository    repository.Notifikasi
+	TaskLabelRepository     repository.TaskLabel
+	TaskChecklistRepository repository.TaskChecklist
+	ChecklistItemRepository repository.ChecklistItem
 
 	DB      *gorm.DB
 	DbRedis *redis.Client
@@ -50,14 +52,16 @@ type service struct {
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		TaskRepository:        f.TaskRepository,
-		BoardRepository:       f.BoardRepository,
-		WorkspaceRepository:   f.WorkspaceRepository,
-		UserRepository:        f.UserRepository,
-		TaskFileRepository:    f.TaskFileRepository,
-		TaskCommentRepository: f.TaskCommentRepository,
-		NotifikasiRepository:  f.NotifikasiRepository,
-		TaskLabelRepository:   f.TaskLabelRepository,
+		TaskRepository:          f.TaskRepository,
+		BoardRepository:         f.BoardRepository,
+		WorkspaceRepository:     f.WorkspaceRepository,
+		UserRepository:          f.UserRepository,
+		TaskFileRepository:      f.TaskFileRepository,
+		TaskCommentRepository:   f.TaskCommentRepository,
+		NotifikasiRepository:    f.NotifikasiRepository,
+		TaskLabelRepository:     f.TaskLabelRepository,
+		TaskChecklistRepository: f.TaskChecklistRepository,
+		ChecklistItemRepository: f.ChecklistItemRepository,
 
 		DB:      f.Db,
 		DbRedis: f.DbRedis,
@@ -228,6 +232,11 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		countCompleted, countTotal, err := s.ChecklistItemRepository.CountByTaskId(ctx, v.ID)
+		if err != nil && err.Error() != "record not found" {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		description := false
 		if v.Description != nil && *v.Description != "" {
 			description = true
@@ -257,6 +266,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			"cover":          v.Cover,
 			"file":           countFileData,
 			"comment":        countCommentData,
+			"checklist":      nil,
 			"is_delete":      v.IsDelete,
 			"created_at":     v.CreatedAt,
 			"updated_at":     v.UpdatedAt,
@@ -328,6 +338,10 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				"count": len(labelArr),
 				"data":  label,
 			}
+		}
+
+		if *countTotal > 0 {
+			task["checklist"] = fmt.Sprintf("%d/%d", *countCompleted, *countTotal)
 		}
 
 		res = append(res, task)
@@ -545,6 +559,10 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
+	checklistData, err := s.TaskChecklistRepository.FindByTaskId(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
 	if data != nil {
 		isWatch := false
 		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, data.ID)
@@ -570,6 +588,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			"cover":          data.Cover,
 			"file":           nil,
 			"comment":        nil,
+			"checklist":      nil,
 			"is_delete":      data.IsDelete,
 			"created_at":     data.CreatedAt,
 			"updated_at":     data.UpdatedAt,
@@ -683,6 +702,80 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			"data":  resComment,
 		}
 
+		var resChecklist []map[string]interface{}
+		for _, v := range checklistData {
+			dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID)
+			if err != nil && err.Error() != "record not found" {
+				return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			var dataChecklistItemArr []map[string]interface{}
+			isChecklistItemCompleted := 0
+			for _, ci := range dataChecklistItem {
+				if ci.IsCompleted {
+					isChecklistItemCompleted++
+				}
+				checklistItem := map[string]interface{}{
+					"id":             ci.ID,
+					"title":          ci.Title,
+					"assign_to_user": ci.AssignToUser,
+					"due_date":       ci.DueDate,
+					"is_completed":   ci.IsCompleted,
+					"sort_number":    ci.SortNumber,
+					"is_delete":      ci.IsDelete,
+					"created_at":     ci.CreatedAt,
+					"updated_at":     ci.UpdatedAt,
+				}
+
+				if ci.AssignToUser != nil {
+					var assignToUser []map[string]interface{}
+					assignToUserArr := general.StringToArrayInt(*ci.AssignToUser)
+					for _, v := range assignToUserArr {
+						dataUser, err := s.UserRepository.FindById(ctx, v)
+						if err != nil && err.Error() != "record not found" {
+							return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+						}
+						if dataUser != nil {
+							assignToUser = append(assignToUser, map[string]interface{}{
+								"id":    dataUser.ID,
+								"name":  dataUser.Name,
+								"email": dataUser.Email,
+							})
+						}
+					}
+					checklistItem["assign_to_user"] = map[string]interface{}{
+						"count": len(assignToUserArr),
+						"data":  assignToUser,
+					}
+				}
+
+				dataChecklistItemArr = append(dataChecklistItemArr, checklistItem)
+			}
+
+			checkPersentase := 0
+			if len(dataChecklistItem) > 0 {
+				checkPersentase = (100 * isChecklistItemCompleted) / len(dataChecklistItem)
+			}
+
+			resChecklist = append(resChecklist, map[string]interface{}{
+				"id":               v.ID,
+				"task_id":          v.TaskId,
+				"title":            v.Title,
+				"check_persentase": strconv.Itoa(checkPersentase) + "%",
+				"is_delete":        v.IsDelete,
+				"created_at":       v.CreatedAt,
+				"updated_at":       v.UpdatedAt,
+				"item": map[string]interface{}{
+					"count": len(dataChecklistItem),
+					"data":  dataChecklistItemArr,
+				},
+			})
+		}
+		res["checklist"] = map[string]interface{}{
+			"count": len(checklistData),
+			"data":  resChecklist,
+		}
+
 	}
 
 	return map[string]interface{}{
@@ -731,6 +824,11 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		countCompleted, countTotal, err := s.ChecklistItemRepository.CountByTaskId(ctx, v.ID)
+		if err != nil && err.Error() != "record not found" {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		description := false
 		if v.Description != nil && *v.Description != "" {
 			description = true
@@ -760,6 +858,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"cover":          v.Cover,
 			"file":           len(fileData),
 			"comment":        len(commentData),
+			"checklist":      nil,
 			"is_delete":      v.IsDelete,
 			"created_at":     v.CreatedAt,
 			"updated_at":     v.UpdatedAt,
@@ -831,6 +930,10 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"count": len(labelArr),
 				"data":  label,
 			}
+		}
+
+		if *countTotal > 0 {
+			task["checklist"] = fmt.Sprintf("%d/%d", *countCompleted, *countTotal)
 		}
 
 		res = append(res, task)

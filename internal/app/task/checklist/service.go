@@ -157,7 +157,10 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCheckl
 			"is_delete":        v.IsDelete,
 			"created_at":       v.CreatedAt,
 			"updated_at":       v.UpdatedAt,
-			"item":             dataChecklistItemArr,
+			"item": map[string]interface{}{
+				"count": len(dataChecklistItem),
+				"data":  dataChecklistItemArr,
+			},
 		})
 	}
 
@@ -321,7 +324,10 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"is_delete":        v.IsDelete,
 			"created_at":       v.CreatedAt,
 			"updated_at":       v.UpdatedAt,
-			"item":             dataChecklistItemArr,
+			"item": map[string]interface{}{
+				"count": len(dataChecklistItem),
+				"data":  dataChecklistItemArr,
+			},
 		})
 	}
 
