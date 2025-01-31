@@ -17,6 +17,8 @@ type Board interface {
 	FindByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error)
 	CountByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 	UpdateTaskTotalById(ctx *abstraction.Context, data *model.BoardEntityModel) *gorm.DB
+	FindByWorkspaceIdArrNoLimitOrder(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error)
+	CountByWorkspaceIdArrNoLimitOrder(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 }
 
 type board struct {
@@ -97,4 +99,28 @@ func (r *board) CountByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int
 
 func (r *board) UpdateTaskTotalById(ctx *abstraction.Context, data *model.BoardEntityModel) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update("task_total", data.TaskTotal)
+}
+
+func (r *board) FindByWorkspaceIdArrNoLimitOrder(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "board", "is_delete = @false"+fmt.Sprintf(" AND workspace_id = %d", workspace_id))
+	order := "sort_number ASC"
+	err = r.CheckTrx(ctx).
+		Where(where, whereParam).
+		Order(order).
+		Find(&data).
+		Error
+	return
+}
+
+func (r *board) CountByWorkspaceIdArrNoLimitOrder(ctx *abstraction.Context, workspace_id int) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "board", "is_delete = @false"+fmt.Sprintf(" AND workspace_id = %d", workspace_id))
+	var count model.BoardCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("board").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
 }

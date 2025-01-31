@@ -22,6 +22,8 @@ type Task interface {
 	CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 	FindByBoardId(ctx *abstraction.Context, board_id int) (*model.TaskEntityModel, error)
 	UpdateToNull(ctx *abstraction.Context, data *model.TaskEntityModel, column string) *gorm.DB
+	FindByBoardIdArrNoLimitOrder(ctx *abstraction.Context, board_id int) (data []*model.TaskEntityModel, err error)
+	CountByBoardIdArrNoLimitOrder(ctx *abstraction.Context, board_id int) (data *int, err error)
 }
 
 type task struct {
@@ -174,4 +176,30 @@ func (r *task) FindByBoardId(ctx *abstraction.Context, board_id int) (*model.Tas
 
 func (r *task) UpdateToNull(ctx *abstraction.Context, data *model.TaskEntityModel, column string) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update(column, nil)
+}
+
+func (r *task) FindByBoardIdArrNoLimitOrder(ctx *abstraction.Context, board_id int) (data []*model.TaskEntityModel, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false"+fmt.Sprintf(" AND board_id = %d", board_id))
+	order := "sort_number ASC"
+	err = r.CheckTrx(ctx).
+		Where(where, whereParam).
+		Order(order).
+		Preload("CreateBy").
+		Preload("UpdateBy").
+		Find(&data).
+		Error
+	return
+}
+
+func (r *task) CountByBoardIdArrNoLimitOrder(ctx *abstraction.Context, board_id int) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false"+fmt.Sprintf(" AND board_id = %d", board_id))
+	var count model.TaskCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("task").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
 }

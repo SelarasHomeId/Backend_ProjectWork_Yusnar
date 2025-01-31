@@ -8,4 +8,5 @@ import (
 
 func (h *handler) Route(v *echo.Group) {
 	v.GET("", h.Find, middleware.Authentication)
+	v.GET("/:id", h.GetData, middleware.Authentication)
 }
