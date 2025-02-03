@@ -74,7 +74,7 @@ func Get() *Configuration {
 
 func Init() *Configuration {
 
-	if err := godotenv.Load("local.env", "/var/www/html/selarashomeid/development.env"); err != nil {
+	if err := godotenv.Load("local.env", "/var/www/html/selarashomeid/development.env", "/var/www/html/selarashomeid/production.env"); err != nil {
 		fmt.Println(err.Error())
 	}
 
@@ -83,8 +83,11 @@ func Init() *Configuration {
 
 	if env == "development" {
 		constant.BASE_URL = "https://yusnar.my.id/api-go-selarashomeid"
+	} else if env == "production" {
+		constant.BASE_URL = "https://yusnar.my.id/api-go-selarashomeid"
 	} else {
 		constant.BASE_URL = "http://localhost:4000"
+
 	}
 
 	defaultConfig.App.App = os.Getenv("APP")
@@ -108,8 +111,6 @@ func Init() *Configuration {
 	defaultConfig.Gomail.SenderName = os.Getenv("SENDER_NAME")
 	defaultConfig.Gomail.AuthEmail = os.Getenv("AUTH_EMAIL")
 	defaultConfig.Gomail.AuthPassword = os.Getenv("AUTH_PASSWORD")
-
-	// on development
 	defaultConfig.Drive.CredentialsDrive = os.Getenv("CREDENTIALS_DRIVE")
 	defaultConfig.Drive.RefreshTokenDrive = os.Getenv("REFRESH_DRIVE")
 
