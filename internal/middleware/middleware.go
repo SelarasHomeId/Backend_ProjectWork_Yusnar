@@ -24,7 +24,7 @@ func Init(e *echo.Echo, redisClient *redis.Client) {
 	e.Use(
 		echoMiddleware.Recover(),
 		echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
-			// AllowOrigins: []string{"*"},
+			AllowOrigins: []string{"*"},
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowCredentials, echo.HeaderContentSecurityPolicy, "x-user-id", "ngrok-skip-browser-warning"},
 			AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete, http.MethodPatch},
 		}),
