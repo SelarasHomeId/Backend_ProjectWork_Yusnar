@@ -87,7 +87,6 @@ func Init() *Configuration {
 		constant.BASE_URL = "https://yusnar.my.id/api-go-selarashomeid"
 	} else {
 		constant.BASE_URL = "http://localhost:4000"
-
 	}
 
 	defaultConfig.App.App = os.Getenv("APP")
