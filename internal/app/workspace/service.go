@@ -265,24 +265,30 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 			resTask = append(resTask, task)
 		}
 
-		task := map[string]interface{}{
-			"data":  resTask,
-			"count": taskCount,
-		}
-
 		board := map[string]interface{}{
 			"id":          board.ID,
 			"name":        board.Name,
 			"task_total":  board.TaskTotal,
 			"sort_number": board.SortNumber,
-			"task":        task,
+			"task": map[string]interface{}{
+				"data":  resTask,
+				"count": taskCount,
+			},
 		}
 
 		resBoard = append(resBoard, board)
 	}
 
+	resWorkspace := map[string]interface{}{
+		"id":        workspaceData.ID,
+		"workspace": workspaceData.Name,
+		"board": map[string]interface{}{
+			"data":  resBoard,
+			"count": boardCount,
+		},
+	}
+
 	return map[string]interface{}{
-		"board": resBoard,
-		"count": boardCount,
+		"data": resWorkspace,
 	}, nil
 }
