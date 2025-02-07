@@ -8,7 +8,6 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
-	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
@@ -126,10 +125,6 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 			newBoardData.Name = *payload.Name
 		}
 		if payload.WorkspaceId != nil {
-			if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not allowed to move the board")
-			}
-
 			workspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
