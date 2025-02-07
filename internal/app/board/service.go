@@ -40,10 +40,6 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		if ctx.Auth.RoleID == constant.ROLE_ID_STAF {
-			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-		}
-
 		workspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -87,10 +83,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		if ctx.Auth.RoleID == constant.ROLE_ID_STAF {
-			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-		}
-
 		boardData, err := s.BoardRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -119,10 +111,6 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		if ctx.Auth.RoleID == constant.ROLE_ID_STAF {
-			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-		}
-
 		boardData, err := s.BoardRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

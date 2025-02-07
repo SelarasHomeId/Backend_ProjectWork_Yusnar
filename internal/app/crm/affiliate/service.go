@@ -2,7 +2,6 @@ package affiliate
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
@@ -10,7 +9,6 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
-	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
@@ -66,9 +64,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateR
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
-	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-	}
 	data, err := s.AffiliateRepository.Find(ctx)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

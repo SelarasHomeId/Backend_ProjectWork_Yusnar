@@ -8,9 +8,9 @@ import (
 )
 
 type WorkspaceEntity struct {
-	DivisiId int    `json:"divisi_id"`
-	Name     string `json:"name"`
-	IsDelete bool   `json:"is_delete"`
+	ProjectId int    `json:"project_id"`
+	Name      string `json:"name"`
+	IsDelete  bool   `json:"is_delete"`
 }
 
 // WorkspaceEntityModel ...

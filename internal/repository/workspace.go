@@ -10,8 +10,8 @@ import (
 
 type Workspace interface {
 	Create(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB
-	UpdateByDivisiId(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB
-	FindByDivisiId(ctx *abstraction.Context, divisi_id int) (*model.WorkspaceEntityModel, error)
+	UpdateByProjectId(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB
+	FindByProjectId(ctx *abstraction.Context, project_id int) (*model.WorkspaceEntityModel, error)
 	Find(ctx *abstraction.Context) (data []*model.WorkspaceEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	FindById(ctx *abstraction.Context, id int) (*model.WorkspaceEntityModel, error)
@@ -33,16 +33,16 @@ func (r *workspace) Create(ctx *abstraction.Context, data *model.WorkspaceEntity
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *workspace) UpdateByDivisiId(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB {
-	return r.CheckTrx(ctx).Model(data).Where("divisi_id = ?", data.DivisiId).Updates(data)
+func (r *workspace) UpdateByProjectId(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB {
+	return r.CheckTrx(ctx).Model(data).Where("project_id = ?", data.ProjectId).Updates(data)
 }
 
-func (r *workspace) FindByDivisiId(ctx *abstraction.Context, divisi_id int) (*model.WorkspaceEntityModel, error) {
+func (r *workspace) FindByProjectId(ctx *abstraction.Context, project_id int) (*model.WorkspaceEntityModel, error) {
 	conn := r.CheckTrx(ctx)
 
 	var data model.WorkspaceEntityModel
 	err := conn.
-		Where("divisi_id = ? AND is_delete = ?", divisi_id, false).
+		Where("project_id = ? AND is_delete = ?", project_id, false).
 		First(&data).
 		Error
 	if err != nil {

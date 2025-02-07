@@ -11,6 +11,7 @@ import (
 	"selarashomeid/internal/app/crm"
 	"selarashomeid/internal/app/divisi"
 	"selarashomeid/internal/app/notifikasi"
+	"selarashomeid/internal/app/project"
 	"selarashomeid/internal/app/role"
 	"selarashomeid/internal/app/task"
 	"selarashomeid/internal/app/test"
@@ -45,4 +46,5 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	board.NewHandler(f).Route(e.Group("/board"))
 	task.NewHandler(f).Route(e.Group("/task"))
 	crm.NewHandler(f).Route(e.Group("/crm"))
+	project.NewHandler(f).Route(e.Group("/project"))
 }

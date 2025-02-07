@@ -790,29 +790,16 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		err   error
 		res   []map[string]interface{} = nil
 	)
-	if ctx.Auth.DivisiID == constant.DIVISI_ID_MANAGEMENT {
-		data, err = s.TaskRepository.Find(ctx)
-		if err != nil && err.Error() != "record not found" {
-			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-		count, err = s.TaskRepository.Count(ctx)
-		if err != nil && err.Error() != "record not found" {
-			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-	} else {
-		dataWorkspace, err := s.WorkspaceRepository.FindByDivisiId(ctx, ctx.Auth.DivisiID)
-		if err != nil && err.Error() != "record not found" {
-			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-		data, err = s.TaskRepository.FindByWorkspace(ctx, dataWorkspace.ID)
-		if err != nil && err.Error() != "record not found" {
-			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-		count, err = s.TaskRepository.CountByWorkspace(ctx, dataWorkspace.ID)
-		if err != nil && err.Error() != "record not found" {
-			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
+
+	data, err = s.TaskRepository.Find(ctx)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
+	count, err = s.TaskRepository.Count(ctx)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
 	for _, v := range data {
 		fileData, err := s.TaskFileRepository.FindByTaskId(ctx, v.ID)
 		if err != nil && err.Error() != "record not found" {

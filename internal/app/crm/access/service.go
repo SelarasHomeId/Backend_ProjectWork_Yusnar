@@ -1,7 +1,6 @@
 package access
 
 import (
-	"errors"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -70,9 +69,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AccessCreateRequ
 }
 
 func (s *service) Count(ctx *abstraction.Context) (*dto.AccesstCountResponse, error) {
-	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
-	}
 	data, err := s.AccessRepository.Count(ctx)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

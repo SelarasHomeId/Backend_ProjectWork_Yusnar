@@ -38,6 +38,7 @@ type Repository_initiated struct {
 	TaskLabelRepository     repository.TaskLabel
 	TaskChecklistRepository repository.TaskChecklist
 	ChecklistItemRepository repository.ChecklistItem
+	ProjectRepository       repository.Project
 }
 
 type GoogleDrive struct {
@@ -97,4 +98,5 @@ func (f *Factory) SetupRepository() {
 	f.TaskLabelRepository = repository.NewTaskLabel(f.Db)
 	f.TaskChecklistRepository = repository.NewTaskChecklist(f.Db)
 	f.ChecklistItemRepository = repository.NewChecklistItem(f.Db)
+	f.ProjectRepository = repository.NewProject(f.Db)
 }

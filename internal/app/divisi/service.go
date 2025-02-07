@@ -70,18 +70,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.DivisiCreateRequ
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		modelWorkspace := &model.WorkspaceEntityModel{
-			Context: ctx,
-			WorkspaceEntity: model.WorkspaceEntity{
-				DivisiId: modelDivisi.ID,
-				Name:     modelDivisi.Name,
-				IsDelete: false,
-			},
-		}
-		if err := s.WorkspaceRepository.Create(ctx, modelWorkspace).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		return nil
 	}); err != nil {
 		return nil, err
@@ -144,24 +132,6 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.DivisiUpdateRequ
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		workspaceData, err := s.WorkspaceRepository.FindByDivisiId(ctx, newDivisiData.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-		if workspaceData == nil {
-			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "workspace not found")
-		}
-
-		newWorkspaceData := new(model.WorkspaceEntityModel)
-		newWorkspaceData.Context = ctx
-		newWorkspaceData.DivisiId = newDivisiData.ID
-		if payload.Name != nil {
-			newWorkspaceData.Name = *payload.Name
-		}
-
-		if err = s.WorkspaceRepository.UpdateByDivisiId(ctx, newWorkspaceData).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
 		return nil
 	}); err != nil {
 		return nil, err
@@ -206,22 +176,6 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.DivisiDeleteByID
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		workspaceData, err := s.WorkspaceRepository.FindByDivisiId(ctx, payload.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-		if workspaceData == nil {
-			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "workspace not found")
-		}
-
-		newWorkspaceData := new(model.WorkspaceEntityModel)
-		newWorkspaceData.Context = ctx
-		newWorkspaceData.DivisiId = workspaceData.DivisiId
-		newWorkspaceData.IsDelete = true
-
-		if err = s.WorkspaceRepository.UpdateByDivisiId(ctx, newWorkspaceData).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
 		return nil
 	}); err != nil {
 		return nil, err
