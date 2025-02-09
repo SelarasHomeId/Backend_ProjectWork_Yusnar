@@ -5,10 +5,8 @@ import (
 )
 
 type TaskCreateRequest struct {
-	BoardId      int     `json:"board_id" form:"board_id" validate:"required"`
-	Title        string  `json:"title" form:"title" validate:"required"`
-	AssignToUser []int   `json:"assign_to_user" form:"assign_to_user"`
-	DueDate      *string `json:"due_date" form:"due_date"`
+	BoardId int    `json:"board_id" form:"board_id" validate:"required"`
+	Title   string `json:"title" form:"title" validate:"required"`
 }
 
 type TaskDeleteByIDRequest struct {

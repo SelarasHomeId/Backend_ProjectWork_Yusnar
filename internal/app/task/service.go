@@ -111,18 +111,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			},
 		}
 
-		if payload.AssignToUser != nil {
-			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
-			modelTask.AssignToUser = &strAssignToUser
-		}
-		if payload.DueDate != nil {
-			parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
-			if err != nil {
-				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
-			}
-			modelTask.DueDate = &parsedDueDate
-		}
-
 		if err := s.TaskRepository.Create(ctx, modelTask).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

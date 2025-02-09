@@ -2,7 +2,7 @@ package dto
 
 type ProjectCreateRequest struct {
 	Name     string  `json:"name" form:"name" validate:"required"`
-	Location *string `json:"location" form:"location" validate:"required"`
+	Location *string `json:"location" form:"location"`
 }
 
 type ProjectUpdateRequest struct {
