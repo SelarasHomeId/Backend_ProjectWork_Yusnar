@@ -428,7 +428,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 		if payload.DueDate != nil {
 			if *payload.DueDate != "" {
-				parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
+				parsedDueDate, err := general.Parse("2006-01-02 15:04:05", *payload.DueDate)
 				if err != nil {
 					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
 				}

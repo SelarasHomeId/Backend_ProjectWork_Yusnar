@@ -117,3 +117,11 @@ func (h handler) ResetPassword(c echo.Context) (err error) {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h handler) GetUserInfo(c echo.Context) (err error) {
+	data, err := h.service.GetUserInfo(c.(*abstraction.Context))
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}

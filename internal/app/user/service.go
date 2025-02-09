@@ -26,6 +26,7 @@ type Service interface {
 	Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRequest) (map[string]interface{}, error)
 	ChangePassword(ctx *abstraction.Context, payload *dto.UserChangePasswordRequest) (map[string]interface{}, error)
 	ResetPassword(ctx *abstraction.Context, payload *dto.UserResetPasswordRequest) (map[string]interface{}, error)
+	GetUserInfo(ctx *abstraction.Context) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -374,5 +375,37 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 	}
 	return map[string]interface{}{
 		"message": "success reset password!",
+	}, nil
+}
+
+func (s *service) GetUserInfo(ctx *abstraction.Context) (map[string]interface{}, error) {
+	var res map[string]interface{} = nil
+	data, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	if data != nil {
+		res = map[string]interface{}{
+			"id":         data.ID,
+			"name":       data.Name,
+			"email":      data.Email,
+			"is_delete":  data.IsDelete,
+			"is_locked":  data.IsLocked,
+			"login_from": data.LoginFrom,
+			"created_at": data.CreatedAt,
+			"updated_at": data.UpdatedAt,
+			"role": map[string]interface{}{
+				"id":   data.Role.ID,
+				"name": data.Role.Name,
+			},
+			"divisi": map[string]interface{}{
+				"id":   data.Divisi.ID,
+				"name": data.Divisi.Name,
+			},
+		}
+
+	}
+	return map[string]interface{}{
+		"data": res,
 	}, nil
 }
