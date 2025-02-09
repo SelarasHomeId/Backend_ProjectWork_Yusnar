@@ -2,6 +2,7 @@ package project
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -9,9 +10,13 @@ import (
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/gdrive"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/sirupsen/logrus"
+	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
 
@@ -28,7 +33,9 @@ type service struct {
 	WorkspaceRepository repository.Workspace
 	BoardRepository     repository.Board
 
-	DB *gorm.DB
+	DB     *gorm.DB
+	sDrive *drive.Service
+	fDrive *drive.File
 }
 
 func NewService(f *factory.Factory) Service {
@@ -38,11 +45,14 @@ func NewService(f *factory.Factory) Service {
 		WorkspaceRepository: f.WorkspaceRepository,
 		BoardRepository:     f.BoardRepository,
 
-		DB: f.Db,
+		DB:     f.Db,
+		sDrive: f.GDrive.Service,
+		fDrive: f.GDrive.Folder,
 	}
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ProjectCreateRequest) (map[string]interface{}, error) {
+	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
@@ -68,7 +78,30 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ProjectCreateReq
 		}
 
 		if payload.Location != nil {
-			modelProject.Location = *payload.Location
+			modelProject.Location = payload.Location
+		}
+
+		if payload.Cover != nil {
+			file := payload.Cover[0]
+
+			f, err := file.Open()
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			defer f.Close()
+
+			isImageFile, fullFileName := general.ValidateImage(file.Filename)
+			if !isImageFile {
+				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), fmt.Sprintf("file format for %s is not approved", file.Filename))
+			}
+
+			newFile, err := gdrive.CreateFile(s.sDrive, fullFileName, "application/octet-stream", f, s.fDrive.Id)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			allFileUploaded = append(allFileUploaded, newFile.Id)
+
+			modelProject.Cover = &newFile.Id
 		}
 
 		if err := s.ProjectRepository.Create(ctx, modelProject).Error; err != nil {
@@ -87,8 +120,28 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ProjectCreateReq
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		modelBoard := &model.BoardEntityModel{
+			Context: ctx,
+			BoardEntity: model.BoardEntity{
+				WorkspaceId: modelWorkspace.ID,
+				Name:        "To Do",
+				TaskTotal:   0,
+				SortNumber:  1,
+				IsDelete:    false,
+			},
+		}
+		if err := s.BoardRepository.Create(ctx, modelBoard).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		return nil
 	}); err != nil {
+		for _, v := range allFileUploaded {
+			errDel := gdrive.DeleteFile(s.sDrive, v)
+			if errDel != nil {
+				logrus.Error("error delete file for error trxmanager:", errDel.Error())
+			}
+		}
 		return nil, err
 	}
 	return map[string]interface{}{
@@ -110,14 +163,29 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	for _, v := range data {
-		res = append(res, map[string]interface{}{
+		project := map[string]interface{}{
 			"id":         v.ID,
 			"name":       v.Name,
 			"location":   v.Location,
+			"cover":      v.Cover,
 			"is_delete":  v.IsDelete,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
-		})
+		}
+
+		if v.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *v.Cover)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			project["cover"] = map[string]interface{}{
+				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
+				"content": cover.WebContentLink,
+				"name":    cover.Name,
+			}
+		}
+
+		res = append(res, project)
 	}
 	return map[string]interface{}{
 		"count": count,
@@ -126,6 +194,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 }
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.ProjectUpdateRequest) (map[string]interface{}, error) {
+	var allFileUploaded []string = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
@@ -146,7 +215,51 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ProjectUpdateReq
 			newProjectData.Name = *payload.Name
 		}
 		if payload.Location != nil {
-			newProjectData.Location = *payload.Location
+			newProjectData.Location = payload.Location
+			if *payload.Location == "" {
+				if err = s.ProjectRepository.UpdateToNull(ctx, newProjectData, "location").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+		if payload.Cover != nil {
+			file := payload.Cover[0]
+
+			f, err := file.Open()
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			defer f.Close()
+
+			isImageFile, fullFileName := general.ValidateImage(file.Filename)
+			if !isImageFile {
+				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), fmt.Sprintf("file format for %s is not approved", file.Filename))
+			}
+
+			newFile, err := gdrive.CreateFile(s.sDrive, fullFileName, "application/octet-stream", f, s.fDrive.Id)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			allFileUploaded = append(allFileUploaded, newFile.Id)
+
+			newProjectData.Cover = &newFile.Id
+
+			if projectData.Cover != nil {
+				err = gdrive.DeleteFile(s.sDrive, *projectData.Cover)
+				if err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		} else {
+			if payload.DeleteCover != nil && *payload.DeleteCover {
+				errDel := gdrive.DeleteFile(s.sDrive, *projectData.Cover)
+				if errDel != nil {
+					logrus.Error("error delete file for cover:", errDel.Error())
+				}
+				if err = s.ProjectRepository.UpdateToNull(ctx, newProjectData, "cover").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		if err = s.ProjectRepository.Update(ctx, newProjectData).Error; err != nil {
@@ -173,6 +286,12 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ProjectUpdateReq
 		}
 		return nil
 	}); err != nil {
+		for _, v := range allFileUploaded {
+			errDel := gdrive.DeleteFile(s.sDrive, v)
+			if errDel != nil {
+				logrus.Error("error delete file for error trxmanager:", errDel.Error())
+			}
+		}
 		return nil, err
 	}
 	return map[string]interface{}{

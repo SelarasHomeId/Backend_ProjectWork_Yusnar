@@ -8,9 +8,10 @@ import (
 )
 
 type ProjectEntity struct {
-	Name     string `json:"name"`
-	Location string `json:"location"`
-	IsDelete bool   `json:"is_delete"`
+	Name     string  `json:"name"`
+	Location *string `json:"location"`
+	IsDelete bool    `json:"is_delete"`
+	Cover    *string `json:"cover"`
 }
 
 // ProjectEntityModel ...

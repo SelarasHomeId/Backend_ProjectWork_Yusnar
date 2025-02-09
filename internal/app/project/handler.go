@@ -28,6 +28,10 @@ func (h *handler) Create(c echo.Context) (err error) {
 	if err = c.Validate(payload); err != nil {
 		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
 	}
+	if err := c.Request().ParseMultipartForm(64 << 20); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind multipart/form-data").SendError(c)
+	}
+	payload.Cover = c.Request().MultipartForm.File["cover"]
 	data, err := h.service.Create(c.(*abstraction.Context), payload)
 	if err != nil {
 		return response.ErrorResponse(err).SendError(c)
@@ -51,6 +55,10 @@ func (h handler) Update(c echo.Context) (err error) {
 	if err = c.Validate(payload); err != nil {
 		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
 	}
+	if err := c.Request().ParseMultipartForm(64 << 20); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind multipart/form-data").SendError(c)
+	}
+	payload.Cover = c.Request().MultipartForm.File["cover"]
 	data, err := h.service.Update(c.(*abstraction.Context), payload)
 	if err != nil {
 		return response.ErrorResponse(err).SendError(c)

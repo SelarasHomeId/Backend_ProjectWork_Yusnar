@@ -33,6 +33,7 @@ type service struct {
 	TaskLabelRepository     repository.TaskLabel
 	ChecklistItemRepository repository.ChecklistItem
 	UserRepository          repository.User
+	ProjectRepository       repository.Project
 
 	DB      *gorm.DB
 	DbRedis redis.Client
@@ -50,6 +51,7 @@ func NewService(f *factory.Factory) Service {
 		TaskLabelRepository:     f.TaskLabelRepository,
 		ChecklistItemRepository: f.ChecklistItemRepository,
 		UserRepository:          f.UserRepository,
+		ProjectRepository:       f.ProjectRepository,
 
 		DB:      f.Db,
 		DbRedis: *f.DbRedis,
@@ -73,14 +75,34 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	for _, v := range data {
-		res = append(res, map[string]interface{}{
+		projectData, err := s.ProjectRepository.FindById(ctx, v.ProjectId)
+		if err != nil && err.Error() != "record not found" {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		workspace := map[string]interface{}{
 			"id":         v.ID,
 			"project_id": v.ProjectId,
 			"name":       v.Name,
+			"cover":      nil,
 			"is_delete":  v.IsDelete,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
-		})
+		}
+
+		if projectData.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *projectData.Cover)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			workspace["cover"] = map[string]interface{}{
+				"view":    "https://lh3.googleusercontent.com/d/" + *projectData.Cover,
+				"content": cover.WebContentLink,
+				"name":    cover.Name,
+			}
+		}
+
+		res = append(res, workspace)
 	}
 
 	return map[string]interface{}{

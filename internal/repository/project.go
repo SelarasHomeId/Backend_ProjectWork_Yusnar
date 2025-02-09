@@ -14,6 +14,7 @@ type Project interface {
 	Find(ctx *abstraction.Context) (data []*model.ProjectEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	Update(ctx *abstraction.Context, data *model.ProjectEntityModel) *gorm.DB
+	UpdateToNull(ctx *abstraction.Context, data *model.ProjectEntityModel, column string) *gorm.DB
 }
 
 type project struct {
@@ -75,4 +76,8 @@ func (r *project) Count(ctx *abstraction.Context) (data *int, err error) {
 
 func (r *project) Update(ctx *abstraction.Context, data *model.ProjectEntityModel) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
+}
+
+func (r *project) UpdateToNull(ctx *abstraction.Context, data *model.ProjectEntityModel, column string) *gorm.DB {
+	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update(column, nil)
 }
