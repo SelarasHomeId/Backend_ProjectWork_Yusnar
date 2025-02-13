@@ -387,7 +387,7 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 	var (
 		limit  = 10
-		offset = 1
+		offset = 0
 	)
 	if ctx.QueryParam("limit") != "" {
 		l, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("limit")))
@@ -397,7 +397,7 @@ func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 		o, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
 		offset = o
 	}
-	return limit, (offset - 1) * limit
+	return limit, offset
 }
 
 func ProcessOrder(ctx *abstraction.Context) string {
