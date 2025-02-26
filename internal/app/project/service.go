@@ -25,6 +25,7 @@ type Service interface {
 	Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	Update(ctx *abstraction.Context, payload *dto.ProjectUpdateRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.ProjectDeleteByIDRequest) (map[string]interface{}, error)
+	FindById(ctx *abstraction.Context, payload *dto.ProjectFindByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -344,5 +345,39 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ProjectDeleteByI
 	}
 	return map[string]interface{}{
 		"message": "success delete!",
+	}, nil
+}
+
+func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByIDRequest) (map[string]interface{}, error) {
+	var res map[string]interface{} = nil
+	data, err := s.ProjectRepository.FindById(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	if data != nil {
+		res = map[string]interface{}{
+			"id":         data.ID,
+			"name":       data.Name,
+			"location":   data.Location,
+			"cover":      data.Cover,
+			"is_delete":  data.IsDelete,
+			"created_at": data.CreatedAt,
+			"updated_at": data.UpdatedAt,
+		}
+
+		if data.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *data.Cover)
+			if err != nil {
+				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			res["cover"] = map[string]interface{}{
+				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
+				"content": cover.WebContentLink,
+				"name":    cover.Name,
+			}
+		}
+	}
+	return map[string]interface{}{
+		"data": res,
 	}, nil
 }

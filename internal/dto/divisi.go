@@ -12,3 +12,7 @@ type DivisiUpdateRequest struct {
 type DivisiDeleteByIDRequest struct {
 	ID int `param:"id" validate:"required"`
 }
+
+type DivisiFindByIDRequest struct {
+	ID int `param:"id" validate:"required"`
+}

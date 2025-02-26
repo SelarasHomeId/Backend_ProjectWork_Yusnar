@@ -19,3 +19,7 @@ type ProjectUpdateRequest struct {
 type ProjectDeleteByIDRequest struct {
 	ID int `param:"id" validate:"required"`
 }
+
+type ProjectFindByIDRequest struct {
+	ID int `param:"id" validate:"required"`
+}

@@ -80,3 +80,18 @@ func (h handler) Delete(c echo.Context) (err error) {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h handler) FindById(c echo.Context) (err error) {
+	payload := new(dto.ProjectFindByIDRequest)
+	if err := c.Bind(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
+	}
+	if err = c.Validate(payload); err != nil {
+		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
+	}
+	data, err := h.service.FindById(c.(*abstraction.Context), payload)
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SuccessResponse(data).SendSuccess(c)
+}

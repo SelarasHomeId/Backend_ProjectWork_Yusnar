@@ -20,6 +20,7 @@ type Service interface {
 	Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	Update(ctx *abstraction.Context, payload *dto.DivisiUpdateRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.DivisiDeleteByIDRequest) (map[string]interface{}, error)
+	FindById(ctx *abstraction.Context, payload *dto.DivisiFindByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -182,5 +183,25 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.DivisiDeleteByID
 	}
 	return map[string]interface{}{
 		"message": "success delete!",
+	}, nil
+}
+
+func (s *service) FindById(ctx *abstraction.Context, payload *dto.DivisiFindByIDRequest) (map[string]interface{}, error) {
+	var res map[string]interface{} = nil
+	data, err := s.DivisiRepository.FindById(ctx, payload.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	if data != nil {
+		res = map[string]interface{}{
+			"id":         data.ID,
+			"name":       data.Name,
+			"is_delete":  data.IsDelete,
+			"created_at": data.CreatedAt,
+			"updated_at": data.UpdatedAt,
+		}
+	}
+	return map[string]interface{}{
+		"data": res,
 	}, nil
 }
