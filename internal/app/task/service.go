@@ -71,6 +71,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateRequest) (map[string]interface{}, error) {
+	returnId := 0
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -137,12 +138,14 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		returnId = modelTask.ID
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
 		"message": "success create!",
+		"id":      returnId,
 	}, nil
 }
 
