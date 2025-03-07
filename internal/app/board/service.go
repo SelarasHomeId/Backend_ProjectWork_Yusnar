@@ -38,7 +38,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateRequest) (map[string]interface{}, error) {
-	returnId := 0
+	boardData := new(model.BoardEntityModel)
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		workspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
 		if err != nil && err.Error() != "record not found" {
@@ -72,14 +72,18 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		returnId = modelBoard.ID
+		boardData = modelBoard
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 	return map[string]interface{}{
-		"message": "success create!",
-		"id":      returnId,
+		"message":      "success create!",
+		"id":           boardData.ID,
+		"name":         boardData.Name,
+		"sort_number":  boardData.SortNumber,
+		"task_total":   boardData.TaskTotal,
+		"workspace_id": boardData.WorkspaceId,
 	}, nil
 }
 
