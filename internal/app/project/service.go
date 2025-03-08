@@ -183,6 +183,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+				"id":      cover.Id,
 			}
 		}
 
@@ -374,6 +375,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+				"id":      cover.Id,
 			}
 		}
 	}

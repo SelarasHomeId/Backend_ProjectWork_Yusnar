@@ -99,6 +99,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				"view":    "https://lh3.googleusercontent.com/d/" + *projectData.Cover,
 				"content": cover.WebContentLink,
 				"name":    cover.Name,
+				"id":      cover.Id,
 			}
 		}
 
@@ -237,6 +238,7 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 					"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 					"content": cover.WebContentLink,
 					"name":    cover.Name,
+					"id":      cover.Id,
 				}
 			}
 
