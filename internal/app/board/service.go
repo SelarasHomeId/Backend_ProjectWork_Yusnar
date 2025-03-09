@@ -140,7 +140,18 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "workspace not found")
 			}
 
-			newBoardData.WorkspaceId = *payload.WorkspaceId
+			dataBoardInWorkspace, err := s.BoardRepository.FindByWorkspaceId(ctx, workspaceData.ID)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			sortNum := 1
+			if dataBoardInWorkspace != nil {
+				sortNum = dataBoardInWorkspace.SortNumber + 1
+			}
+
+			newBoardData.WorkspaceId = workspaceData.ID
+			newBoardData.SortNumber = sortNum
 		}
 		if payload.SortNumber != nil {
 			newBoardData.SortNumber = *payload.SortNumber
