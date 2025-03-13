@@ -556,6 +556,11 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	if data != nil {
+		dataBoard, err := s.BoardRepository.FindById(ctx, data.BoardId)
+		if err != nil && err.Error() != "record not found" {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		isWatch := false
 		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, data.ID)
 		val, errGetKeyWatch := s.DbRedis.Get(context.Background(), keyWatchTask).Result()
@@ -594,8 +599,9 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"name":  data.UpdateBy.Name,
 				"email": data.UpdateBy.Email,
 			},
-			"watch":       isWatch,
-			"sort_number": data.SortNumber,
+			"watch":        isWatch,
+			"sort_number":  data.SortNumber,
+			"workspace_id": dataBoard.WorkspaceId,
 		}
 
 		if data.AssignToUser != nil {
