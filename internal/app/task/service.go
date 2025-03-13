@@ -556,7 +556,11 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 	if data != nil {
-		dataBoard, err := s.BoardRepository.FindById(ctx, data.BoardId)
+		boardData, err := s.BoardRepository.FindById(ctx, data.BoardId)
+		if err != nil && err.Error() != "record not found" {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		workspaceData, err := s.WorkspaceRepository.FindById(ctx, boardData.WorkspaceId)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -599,9 +603,13 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"name":  data.UpdateBy.Name,
 				"email": data.UpdateBy.Email,
 			},
-			"watch":        isWatch,
-			"sort_number":  data.SortNumber,
-			"workspace_id": dataBoard.WorkspaceId,
+			"watch":       isWatch,
+			"sort_number": data.SortNumber,
+			"workspace": map[string]interface{}{
+				"id":         workspaceData.ID,
+				"name":       workspaceData.Name,
+				"project_id": workspaceData.ProjectId,
+			},
 		}
 
 		if data.AssignToUser != nil {
