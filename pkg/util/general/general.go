@@ -246,6 +246,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		case "divisi":
 			where += " AND (LOWER(name) LIKE @search_name)"
 			whereParam["search_name"] = val
+		case "project":
+			where += " AND (LOWER(name) LIKE @search_name)"
+			whereParam["search_name"] = val
 		case "banner":
 			where += " AND (LOWER(file_name) LIKE @search_file_name)"
 			whereParam["search_file_name"] = val
