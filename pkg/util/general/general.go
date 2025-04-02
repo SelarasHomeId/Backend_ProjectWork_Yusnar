@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"path/filepath"
 	"regexp"
@@ -399,6 +400,11 @@ func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 	if ctx.QueryParam("offset") != "" {
 		o, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
 		offset = o
+	}
+	if ctx.QueryParam("no_paging") != "" {
+		if ctx.QueryParam("no_paging") == "yes" {
+			limit = math.MaxInt64
+		}
 	}
 	return limit, offset
 }
