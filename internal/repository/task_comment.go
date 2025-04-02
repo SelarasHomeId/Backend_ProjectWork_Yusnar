@@ -38,6 +38,8 @@ func (r *task_comment) FindByTaskId(ctx *abstraction.Context, task_id int) (data
 		Order(order).
 		Limit(limit).
 		Offset(offset).
+		Preload("CreateBy").
+		Preload("UpdateBy").
 		Find(&data).
 		Error
 	return
