@@ -702,6 +702,16 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"is_delete":  v.IsDelete,
 				"created_at": v.CreatedAt,
 				"updated_at": v.UpdatedAt,
+				"created_by": map[string]interface{}{
+					"id":    v.CreateBy.ID,
+					"name":  v.CreateBy.Name,
+					"email": v.CreateBy.Email,
+				},
+				"updated_by": map[string]interface{}{
+					"id":    v.UpdateBy.ID,
+					"name":  v.UpdateBy.Name,
+					"email": v.UpdateBy.Email,
+				},
 			})
 		}
 		res["comment"] = map[string]interface{}{

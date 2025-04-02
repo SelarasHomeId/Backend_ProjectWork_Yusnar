@@ -20,7 +20,10 @@ type TaskCommentEntityModel struct {
 	// entity
 	TaskCommentEntity
 
-	abstraction.Entity
+	abstraction.EntityWithBy
+
+	CreateBy UserEntityModel `json:"create_by" gorm:"foreignKey:CreatedBy"`
+	UpdateBy UserEntityModel `json:"update_by" gorm:"foreignKey:UpdatedBy"`
 
 	// context
 	Context *abstraction.Context `json:"-" gorm:"-"`
@@ -37,10 +40,12 @@ type TaskCommentCountDataModel struct {
 
 func (m *TaskCommentEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 	m.UpdatedAt = general.NowLocal()
+	m.UpdatedBy = &m.Context.Auth.ID
 	return
 }
 
 func (m *TaskCommentEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
+	m.CreatedBy = m.Context.Auth.ID
 	// m.CreatedAt = *general.NowLocal()
 	return
 }
