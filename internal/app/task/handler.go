@@ -10,6 +10,7 @@ import (
 	"selarashomeid/internal/dto"
 	"selarashomeid/internal/factory"
 	"selarashomeid/pkg/util/response"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -88,11 +89,14 @@ func (h handler) Update(c echo.Context) (err error) {
 	if err = c.Validate(payload); err != nil {
 		return response.ErrorBuilder(http.StatusBadRequest, err, "error validate payload").SendError(c)
 	}
-	if err := c.Request().ParseMultipartForm(64 << 20); err != nil {
-		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind multipart/form-data").SendError(c)
-	}
 
-	payload.Cover = c.Request().MultipartForm.File["cover"]
+	contentType := c.Request().Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := c.Request().ParseMultipartForm(64 << 20); err != nil {
+			return response.ErrorBuilder(http.StatusBadRequest, err, "error bind multipart/form-data").SendError(c)
+		}
+		payload.Cover = c.Request().MultipartForm.File["cover"]
+	}
 
 	data, err := h.service.Update(c.(*abstraction.Context), payload)
 	if err != nil {
