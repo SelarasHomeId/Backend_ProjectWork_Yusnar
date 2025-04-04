@@ -1,7 +1,6 @@
 package task
 
 import (
-	"encoding/json"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	taskchecklist "selarashomeid/internal/app/task/checklist"
@@ -82,24 +81,6 @@ func (h handler) FindByBoardId(c echo.Context) (err error) {
 
 func (h handler) Update(c echo.Context) (err error) {
 	payload := new(dto.TaskUpdateRequest)
-
-	labelString := c.FormValue("label")
-	if labelString != "" {
-		var labelIDs []int
-		if err := json.Unmarshal([]byte(labelString), &labelIDs); err != nil {
-			return response.ErrorBuilder(http.StatusBadRequest, err, "error parsing label array").SendError(c)
-		}
-		payload.Label = labelIDs
-	}
-
-	assignToUserString := c.FormValue("assign_to_user")
-	if assignToUserString != "" {
-		var assignToUserIDs []int
-		if err := json.Unmarshal([]byte(assignToUserString), &assignToUserIDs); err != nil {
-			return response.ErrorBuilder(http.StatusBadRequest, err, "error parsing assign to user array").SendError(c)
-		}
-		payload.AssignToUser = assignToUserIDs
-	}
 
 	if err = c.Bind(payload); err != nil {
 		return response.ErrorBuilder(http.StatusBadRequest, err, "error bind payload").SendError(c)
