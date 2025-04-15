@@ -305,6 +305,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			task["cover"] = map[string]interface{}{
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
+				"ext":     cover.FileExtension,
 				"name":    cover.Name,
 				"id":      cover.Id,
 			}
@@ -642,6 +643,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			res["cover"] = map[string]interface{}{
 				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
 				"content": cover.WebContentLink,
+				"ext":     cover.FileExtension,
 				"name":    cover.Name,
 				"id":      cover.Id,
 			}
@@ -681,6 +683,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"file": map[string]interface{}{
 					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
 					"content": fileDrive.WebContentLink,
+					"ext":     fileDrive.FileExtension,
 					"name":    fileDrive.Name,
 				},
 				"is_delete":  v.IsDelete,
@@ -910,6 +913,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			task["cover"] = map[string]interface{}{
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
+				"ext":     cover.FileExtension,
 				"name":    cover.Name,
 				"id":      cover.Id,
 			}

@@ -182,6 +182,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			project["cover"] = map[string]interface{}{
 				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
 				"content": cover.WebContentLink,
+				"ext":     cover.FileExtension,
 				"name":    cover.Name,
 				"id":      cover.Id,
 			}
@@ -374,6 +375,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 			res["cover"] = map[string]interface{}{
 				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
 				"content": cover.WebContentLink,
+				"ext":     cover.FileExtension,
 				"name":    cover.Name,
 				"id":      cover.Id,
 			}
