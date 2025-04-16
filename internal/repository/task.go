@@ -13,12 +13,12 @@ type Task interface {
 	Create(ctx *abstraction.Context, data *model.TaskEntityModel) *gorm.DB
 	FindById(ctx *abstraction.Context, id int) (*model.TaskEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.TaskEntityModel) *gorm.DB
-	FindByBoardIdArr(ctx *abstraction.Context, board_id int) (data []*model.TaskEntityModel, err error)
+	FindByBoardIdArr(ctx *abstraction.Context, board_id int, no_paging bool) (data []*model.TaskEntityModel, err error)
 	CountByBoardIdArr(ctx *abstraction.Context, board_id int) (data *int, err error)
 	UpdateCompleted(ctx *abstraction.Context, data *model.TaskEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.TaskEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
-	FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error)
+	FindByWorkspace(ctx *abstraction.Context, workspace_id int, no_paging bool) (data []*model.TaskEntityModel, err error)
 	CountByWorkspace(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 	FindByBoardId(ctx *abstraction.Context, board_id int) (*model.TaskEntityModel, error)
 	UpdateToNull(ctx *abstraction.Context, data *model.TaskEntityModel, column string) *gorm.DB
@@ -62,9 +62,9 @@ func (r *task) Update(ctx *abstraction.Context, data *model.TaskEntityModel) *go
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
 }
 
-func (r *task) FindByBoardIdArr(ctx *abstraction.Context, board_id int) (data []*model.TaskEntityModel, err error) {
+func (r *task) FindByBoardIdArr(ctx *abstraction.Context, board_id int, no_paging bool) (data []*model.TaskEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false"+fmt.Sprintf(" AND board_id = %d", board_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
@@ -95,9 +95,9 @@ func (r *task) UpdateCompleted(ctx *abstraction.Context, data *model.TaskEntityM
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Update("is_completed", data.IsCompleted)
 }
 
-func (r *task) Find(ctx *abstraction.Context) (data []*model.TaskEntityModel, err error) {
+func (r *task) Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
@@ -124,9 +124,9 @@ func (r *task) Count(ctx *abstraction.Context) (data *int, err error) {
 	return
 }
 
-func (r *task) FindByWorkspace(ctx *abstraction.Context, workspace_id int) (data []*model.TaskEntityModel, err error) {
+func (r *task) FindByWorkspace(ctx *abstraction.Context, workspace_id int, no_paging bool) (data []*model.TaskEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task", "task.is_delete = @false"+fmt.Sprintf(" AND workspace.id = %d", workspace_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Table("task").

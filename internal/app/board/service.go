@@ -24,6 +24,7 @@ type Service interface {
 type service struct {
 	BoardRepository     repository.Board
 	WorkspaceRepository repository.Workspace
+	TaskRepository      repository.Task
 
 	DB *gorm.DB
 }
@@ -32,6 +33,7 @@ func NewService(f *factory.Factory) Service {
 	return &service{
 		BoardRepository:     f.BoardRepository,
 		WorkspaceRepository: f.WorkspaceRepository,
+		TaskRepository:      f.TaskRepository,
 
 		DB: f.Db,
 	}
@@ -101,9 +103,25 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 		newBoardData.Context = ctx
 		newBoardData.ID = boardData.ID
 		newBoardData.IsDelete = true
+		newBoardData.TaskTotal = 0
 
 		if err = s.BoardRepository.Update(ctx, newBoardData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		taskInBoard, err := s.TaskRepository.FindByBoardIdArr(ctx, boardData.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range taskInBoard {
+			newTaskData := new(model.TaskEntityModel)
+			newTaskData.Context = ctx
+			newTaskData.ID = v.ID
+			newTaskData.IsDelete = true
+			if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		return nil
@@ -181,7 +199,7 @@ func (s *service) FindByWorkspaceId(ctx *abstraction.Context, payload *dto.Board
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "workspace not found")
 	}
 
-	data, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, payload.WorkspaceID)
+	data, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, payload.WorkspaceID, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

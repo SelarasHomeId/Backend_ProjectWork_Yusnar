@@ -105,7 +105,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.UserCreateReques
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
-	data, err := s.UserRepository.Find(ctx)
+	data, err := s.UserRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

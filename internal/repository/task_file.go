@@ -10,7 +10,7 @@ import (
 )
 
 type TaskFile interface {
-	FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskFileEntityModel, err error)
+	FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskFileEntityModel, err error)
 	CountByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error)
 	Create(ctx *abstraction.Context, data *model.TaskFileEntityModel) *gorm.DB
 	FindById(ctx *abstraction.Context, id int) (*model.TaskFileEntityModel, error)
@@ -29,9 +29,9 @@ func NewTaskFile(db *gorm.DB) *task_file {
 	}
 }
 
-func (r *task_file) FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskFileEntityModel, err error) {
+func (r *task_file) FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskFileEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_file", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

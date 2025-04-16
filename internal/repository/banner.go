@@ -34,7 +34,7 @@ func NewBanner(db *gorm.DB) *banner {
 
 func (r *banner) Find(ctx *abstraction.Context) (data []*model.BannerEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "banner", "is_delete = @false AND is_popup = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, true)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

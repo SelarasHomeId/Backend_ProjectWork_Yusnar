@@ -12,7 +12,7 @@ type Workspace interface {
 	Create(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB
 	UpdateByProjectId(ctx *abstraction.Context, data *model.WorkspaceEntityModel) *gorm.DB
 	FindByProjectId(ctx *abstraction.Context, project_id int) (*model.WorkspaceEntityModel, error)
-	Find(ctx *abstraction.Context) (data []*model.WorkspaceEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.WorkspaceEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	FindById(ctx *abstraction.Context, id int) (*model.WorkspaceEntityModel, error)
 }
@@ -51,9 +51,9 @@ func (r *workspace) FindByProjectId(ctx *abstraction.Context, project_id int) (*
 	return &data, nil
 }
 
-func (r *workspace) Find(ctx *abstraction.Context) (data []*model.WorkspaceEntityModel, err error) {
+func (r *workspace) Find(ctx *abstraction.Context, no_paging bool) (data []*model.WorkspaceEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "workspace", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

@@ -86,7 +86,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCheckl
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
 	}
 
-	data, err := s.TaskChecklistRepository.FindByTaskId(ctx, payload.TaskId)
+	data, err := s.TaskChecklistRepository.FindByTaskId(ctx, payload.TaskId, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -96,7 +96,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCheckl
 	}
 
 	for _, v := range data {
-		dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID)
+		dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -245,7 +245,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
 
-	data, err := s.TaskChecklistRepository.Find(ctx)
+	data, err := s.TaskChecklistRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -260,7 +260,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID)
+		dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

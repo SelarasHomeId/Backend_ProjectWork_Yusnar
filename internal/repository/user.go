@@ -11,7 +11,7 @@ import (
 type User interface {
 	FindByEmail(ctx *abstraction.Context, email string) (*model.UserEntityModel, error)
 	Create(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.UserEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.UserEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	FindById(ctx *abstraction.Context, id int) (*model.UserEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
@@ -54,9 +54,9 @@ func (r *user) Create(ctx *abstraction.Context, data *model.UserEntityModel) *go
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *user) Find(ctx *abstraction.Context) (data []*model.UserEntityModel, err error) {
+func (r *user) Find(ctx *abstraction.Context, no_paging bool) (data []*model.UserEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "user", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

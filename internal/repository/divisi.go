@@ -11,7 +11,7 @@ import (
 type Divisi interface {
 	FindById(ctx *abstraction.Context, id int) (*model.DivisiEntityModel, error)
 	Create(ctx *abstraction.Context, data *model.DivisiEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.DivisiEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.DivisiEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	Update(ctx *abstraction.Context, data *model.DivisiEntityModel) *gorm.DB
 }
@@ -46,9 +46,9 @@ func (r *divisi) Create(ctx *abstraction.Context, data *model.DivisiEntityModel)
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *divisi) Find(ctx *abstraction.Context) (data []*model.DivisiEntityModel, err error) {
+func (r *divisi) Find(ctx *abstraction.Context, no_paging bool) (data []*model.DivisiEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "divisi", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

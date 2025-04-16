@@ -33,6 +33,7 @@ type service struct {
 	UserRepository      repository.User
 	WorkspaceRepository repository.Workspace
 	BoardRepository     repository.Board
+	TaskRepository      repository.Task
 
 	DB     *gorm.DB
 	sDrive *drive.Service
@@ -45,6 +46,7 @@ func NewService(f *factory.Factory) Service {
 		UserRepository:      f.UserRepository,
 		WorkspaceRepository: f.WorkspaceRepository,
 		BoardRepository:     f.BoardRepository,
+		TaskRepository:      f.TaskRepository,
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
@@ -59,7 +61,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ProjectCreateReq
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
 		}
 
-		dataAllProject, err := s.ProjectRepository.Find(ctx)
+		dataAllProject, err := s.ProjectRepository.Find(ctx, true)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -155,7 +157,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
 	}
-	data, err := s.ProjectRepository.Find(ctx)
+	data, err := s.ProjectRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -340,6 +342,36 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ProjectDeleteByI
 
 		if err = s.WorkspaceRepository.UpdateByProjectId(ctx, newWorkspaceData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		boardInWorkspace, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, workspaceData.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range boardInWorkspace {
+			newBoardData := new(model.BoardEntityModel)
+			newBoardData.Context = ctx
+			newBoardData.ID = v.ID
+			newBoardData.IsDelete = true
+			newBoardData.TaskTotal = 0
+			if err = s.BoardRepository.Update(ctx, newBoardData).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			taskInBoard, err := s.TaskRepository.FindByBoardIdArr(ctx, v.ID, true)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			for _, t := range taskInBoard {
+				newTaskData := new(model.TaskEntityModel)
+				newTaskData.Context = ctx
+				newTaskData.ID = t.ID
+				newTaskData.IsDelete = true
+				if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 		return nil
 	}); err != nil {

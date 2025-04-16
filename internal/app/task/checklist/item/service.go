@@ -121,7 +121,7 @@ func (s *service) FindByTaskChecklistId(ctx *abstraction.Context, payload *dto.C
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "checklist not found")
 	}
 
-	data, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, payload.TaskChecklistId)
+	data, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, payload.TaskChecklistId, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

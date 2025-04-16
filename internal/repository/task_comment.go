@@ -10,7 +10,7 @@ import (
 )
 
 type TaskComment interface {
-	FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskCommentEntityModel, err error)
+	FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskCommentEntityModel, err error)
 	CountByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error)
 	Create(ctx *abstraction.Context, data *model.TaskCommentEntityModel) *gorm.DB
 	FindById(ctx *abstraction.Context, id int) (*model.TaskCommentEntityModel, error)
@@ -29,9 +29,9 @@ func NewTaskComment(db *gorm.DB) *task_comment {
 	}
 }
 
-func (r *task_comment) FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskCommentEntityModel, err error) {
+func (r *task_comment) FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskCommentEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_comment", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

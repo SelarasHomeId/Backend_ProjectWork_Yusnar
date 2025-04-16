@@ -36,20 +36,20 @@ func NewService(f *factory.Factory) Service {
 func (s *service) CalculateTask(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
 
-	dataWorkspace, err := s.WorkspaceRepository.Find(ctx)
+	dataWorkspace, err := s.WorkspaceRepository.Find(ctx, true)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 
 	for _, v := range dataWorkspace {
-		dataBoard, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, v.ID)
+		dataBoard, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		var resBoard []map[string]interface{} = nil
 		for _, b := range dataBoard {
-			dataTask, err := s.TaskRepository.FindByBoardIdArr(ctx, b.ID)
+			dataTask, err := s.TaskRepository.FindByBoardIdArr(ctx, b.ID, true)
 			if err != nil && err.Error() != "record not found" {
 				return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}

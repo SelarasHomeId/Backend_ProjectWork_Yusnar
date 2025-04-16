@@ -12,7 +12,7 @@ import (
 type ChecklistItem interface {
 	Create(ctx *abstraction.Context, data *model.ChecklistItemEntityModel) *gorm.DB
 	FindByTaskChecklistId(ctx *abstraction.Context, task_checklist_id int) (*model.ChecklistItemEntityModel, error)
-	FindByTaskChecklistIdArr(ctx *abstraction.Context, task_checklist_id int) (data []*model.ChecklistItemEntityModel, err error)
+	FindByTaskChecklistIdArr(ctx *abstraction.Context, task_checklist_id int, no_paging bool) (data []*model.ChecklistItemEntityModel, err error)
 	CountByTaskChecklistIdArr(ctx *abstraction.Context, task_checklist_id int) (data *int, err error)
 	Update(ctx *abstraction.Context, data *model.ChecklistItemEntityModel) *gorm.DB
 	FindById(ctx *abstraction.Context, id int) (*model.ChecklistItemEntityModel, error)
@@ -52,9 +52,9 @@ func (r *checklist_item) FindByTaskChecklistId(ctx *abstraction.Context, task_ch
 	return &data, nil
 }
 
-func (r *checklist_item) FindByTaskChecklistIdArr(ctx *abstraction.Context, task_checklist_id int) (data []*model.ChecklistItemEntityModel, err error) {
+func (r *checklist_item) FindByTaskChecklistIdArr(ctx *abstraction.Context, task_checklist_id int, no_paging bool) (data []*model.ChecklistItemEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "checklist_item", "is_delete = @false"+fmt.Sprintf(" AND task_checklist_id = %d", task_checklist_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

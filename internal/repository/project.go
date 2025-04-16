@@ -11,7 +11,7 @@ import (
 type Project interface {
 	FindById(ctx *abstraction.Context, id int) (*model.ProjectEntityModel, error)
 	Create(ctx *abstraction.Context, data *model.ProjectEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.ProjectEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.ProjectEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	Update(ctx *abstraction.Context, data *model.ProjectEntityModel) *gorm.DB
 	UpdateToNull(ctx *abstraction.Context, data *model.ProjectEntityModel, column string) *gorm.DB
@@ -47,9 +47,9 @@ func (r *project) Create(ctx *abstraction.Context, data *model.ProjectEntityMode
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *project) Find(ctx *abstraction.Context) (data []*model.ProjectEntityModel, err error) {
+func (r *project) Find(ctx *abstraction.Context, no_paging bool) (data []*model.ProjectEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "project", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

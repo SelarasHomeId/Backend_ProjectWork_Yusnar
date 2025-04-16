@@ -10,7 +10,7 @@ import (
 
 type TaskLabel interface {
 	Create(ctx *abstraction.Context, data *model.TaskLabelEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.TaskLabelEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskLabelEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 	FindById(ctx *abstraction.Context, id int) (*model.TaskLabelEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.TaskLabelEntityModel) *gorm.DB
@@ -32,9 +32,9 @@ func (r *task_label) Create(ctx *abstraction.Context, data *model.TaskLabelEntit
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *task_label) Find(ctx *abstraction.Context) (data []*model.TaskLabelEntityModel, err error) {
+func (r *task_label) Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskLabelEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_label", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

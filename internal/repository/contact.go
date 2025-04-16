@@ -10,7 +10,7 @@ import (
 
 type Contact interface {
 	Create(ctx *abstraction.Context, data *model.ContactEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.ContactEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.ContactEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
 
@@ -30,9 +30,9 @@ func (r *contact) Create(ctx *abstraction.Context, data *model.ContactEntityMode
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *contact) Find(ctx *abstraction.Context) (data []*model.ContactEntityModel, err error) {
+func (r *contact) Find(ctx *abstraction.Context, no_paging bool) (data []*model.ContactEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "contact", "")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

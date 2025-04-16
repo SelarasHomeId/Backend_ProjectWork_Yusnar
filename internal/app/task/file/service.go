@@ -151,7 +151,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskFileFi
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
 	}
 
-	data, err := s.TaskFileRepository.FindByTaskId(ctx, payload.TaskId)
+	data, err := s.TaskFileRepository.FindByTaskId(ctx, payload.TaskId, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

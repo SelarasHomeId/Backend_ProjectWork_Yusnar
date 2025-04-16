@@ -203,7 +203,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
 	}
 
-	data, err := s.TaskRepository.FindByBoardIdArr(ctx, payload.BoardID)
+	data, err := s.TaskRepository.FindByBoardIdArr(ctx, payload.BoardID, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -544,15 +544,15 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	fileData, err := s.TaskFileRepository.FindByTaskId(ctx, payload.ID)
+	fileData, err := s.TaskFileRepository.FindByTaskId(ctx, payload.ID, true)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, payload.ID)
+	commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, payload.ID, true)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	checklistData, err := s.TaskChecklistRepository.FindByTaskId(ctx, payload.ID)
+	checklistData, err := s.TaskChecklistRepository.FindByTaskId(ctx, payload.ID, true)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -724,7 +724,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 		var resChecklist []map[string]interface{}
 		for _, v := range checklistData {
-			dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID)
+			dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID, true)
 			if err != nil && err.Error() != "record not found" {
 				return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -811,7 +811,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		res   []map[string]interface{} = nil
 	)
 
-	data, err = s.TaskRepository.Find(ctx)
+	data, err = s.TaskRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -821,12 +821,12 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	}
 
 	for _, v := range data {
-		fileData, err := s.TaskFileRepository.FindByTaskId(ctx, v.ID)
+		fileData, err := s.TaskFileRepository.FindByTaskId(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, v.ID)
+		commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

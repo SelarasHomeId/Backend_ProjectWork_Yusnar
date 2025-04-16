@@ -10,7 +10,7 @@ import (
 
 type Role interface {
 	FindById(ctx *abstraction.Context, id int) (*model.RoleEntityModel, error)
-	Find(ctx *abstraction.Context) (data []*model.RoleEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.RoleEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
 
@@ -40,9 +40,9 @@ func (r *role) FindById(ctx *abstraction.Context, id int) (*model.RoleEntityMode
 	return &data, nil
 }
 
-func (r *role) Find(ctx *abstraction.Context) (data []*model.RoleEntityModel, err error) {
+func (r *role) Find(ctx *abstraction.Context, no_paging bool) (data []*model.RoleEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "role", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

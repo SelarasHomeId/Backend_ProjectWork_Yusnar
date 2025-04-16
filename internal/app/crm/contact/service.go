@@ -62,7 +62,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateReq
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
-	data, err := s.ContactRepository.Find(ctx)
+	data, err := s.ContactRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -87,7 +87,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 }
 
 func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
-	data, err := s.ContactRepository.Find(ctx)
+	data, err := s.ContactRepository.Find(ctx, true)
 	if err != nil {
 		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

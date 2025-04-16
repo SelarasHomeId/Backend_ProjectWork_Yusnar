@@ -49,7 +49,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.DivisiCreateRequ
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
 		}
 
-		dataAllDivisi, err := s.DivisiRepository.Find(ctx)
+		dataAllDivisi, err := s.DivisiRepository.Find(ctx, true)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -85,7 +85,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 	if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
 		return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this role is not permitted")
 	}
-	data, err := s.DivisiRepository.Find(ctx)
+	data, err := s.DivisiRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

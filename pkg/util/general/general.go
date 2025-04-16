@@ -388,7 +388,7 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 	return where, whereParam
 }
 
-func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
+func ProcessLimitOffset(ctx *abstraction.Context, no_paging bool) (int, int) {
 	var (
 		limit  = 10
 		offset = 0
@@ -401,7 +401,9 @@ func ProcessLimitOffset(ctx *abstraction.Context) (int, int) {
 		o, _ := strconv.Atoi(SanitizeStringOfNumber(ctx.QueryParam("offset")))
 		offset = o
 	}
-	if ctx.QueryParam("no_paging") != "" {
+	if no_paging {
+		limit = math.MaxInt64
+	} else if ctx.QueryParam("no_paging") != "" {
 		if ctx.QueryParam("no_paging") == "yes" {
 			limit = math.MaxInt64
 		}

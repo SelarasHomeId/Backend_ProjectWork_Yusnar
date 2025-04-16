@@ -66,7 +66,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		count *int
 	)
 
-	data, err := s.WorkspaceRepository.Find(ctx)
+	data, err := s.WorkspaceRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

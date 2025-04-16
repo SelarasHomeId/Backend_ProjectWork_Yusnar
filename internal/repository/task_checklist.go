@@ -11,11 +11,11 @@ import (
 
 type TaskChecklist interface {
 	Create(ctx *abstraction.Context, data *model.TaskChecklistEntityModel) *gorm.DB
-	FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskChecklistEntityModel, err error)
+	FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskChecklistEntityModel, err error)
 	CountByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error)
 	FindById(ctx *abstraction.Context, id int) (*model.TaskChecklistEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.TaskChecklistEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.TaskChecklistEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskChecklistEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
 
@@ -35,9 +35,9 @@ func (r *task_checklist) Create(ctx *abstraction.Context, data *model.TaskCheckl
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *task_checklist) FindByTaskId(ctx *abstraction.Context, task_id int) (data []*model.TaskChecklistEntityModel, err error) {
+func (r *task_checklist) FindByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskChecklistEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_checklist", "is_delete = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
@@ -80,9 +80,9 @@ func (r *task_checklist) Update(ctx *abstraction.Context, data *model.TaskCheckl
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
 }
 
-func (r *task_checklist) Find(ctx *abstraction.Context) (data []*model.TaskChecklistEntityModel, err error) {
+func (r *task_checklist) Find(ctx *abstraction.Context, no_paging bool) (data []*model.TaskChecklistEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "task_checklist", "is_delete = @false")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := "created_at DESC"
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

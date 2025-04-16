@@ -14,7 +14,7 @@ type Board interface {
 	FindByWorkspaceId(ctx *abstraction.Context, workspace_id int) (*model.BoardEntityModel, error)
 	FindById(ctx *abstraction.Context, id int) (*model.BoardEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.BoardEntityModel) *gorm.DB
-	FindByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error)
+	FindByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int, no_paging bool) (data []*model.BoardEntityModel, err error)
 	CountByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int) (data *int, err error)
 	UpdateTaskTotalById(ctx *abstraction.Context, data *model.BoardEntityModel) *gorm.DB
 	FindByWorkspaceIdArrNoLimitOrder(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error)
@@ -70,9 +70,9 @@ func (r *board) Update(ctx *abstraction.Context, data *model.BoardEntityModel) *
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
 }
 
-func (r *board) FindByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int) (data []*model.BoardEntityModel, err error) {
+func (r *board) FindByWorkspaceIdArr(ctx *abstraction.Context, workspace_id int, no_paging bool) (data []*model.BoardEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "board", "is_delete = @false"+fmt.Sprintf(" AND workspace_id = %d", workspace_id))
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).

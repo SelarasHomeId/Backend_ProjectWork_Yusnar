@@ -60,7 +60,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateR
 }
 
 func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error) {
-	data, err := s.TaskLabelRepository.Find(ctx)
+	data, err := s.TaskLabelRepository.Find(ctx, false)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

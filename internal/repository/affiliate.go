@@ -10,7 +10,7 @@ import (
 
 type Affiliate interface {
 	Create(ctx *abstraction.Context, data *model.AffiliateEntityModel) *gorm.DB
-	Find(ctx *abstraction.Context) (data []*model.AffiliateEntityModel, err error)
+	Find(ctx *abstraction.Context, no_paging bool) (data []*model.AffiliateEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
 
@@ -30,9 +30,9 @@ func (r *affiliate) Create(ctx *abstraction.Context, data *model.AffiliateEntity
 	return r.CheckTrx(ctx).Create(data)
 }
 
-func (r *affiliate) Find(ctx *abstraction.Context) (data []*model.AffiliateEntityModel, err error) {
+func (r *affiliate) Find(ctx *abstraction.Context, no_paging bool) (data []*model.AffiliateEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "affiliate", "")
-	limit, offset := general.ProcessLimitOffset(ctx)
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
 	order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
