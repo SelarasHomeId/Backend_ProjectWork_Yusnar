@@ -218,9 +218,11 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 					}
 					if dataUser != nil {
 						assignToUser = append(assignToUser, map[string]interface{}{
-							"id":    dataUser.ID,
-							"name":  dataUser.Name,
-							"email": dataUser.Email,
+							"id":     dataUser.ID,
+							"name":   dataUser.Name,
+							"email":  dataUser.Email,
+							"divisi": dataUser.Divisi.Name,
+							"role":   dataUser.Role.Name,
 						})
 					}
 				}

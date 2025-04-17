@@ -285,9 +285,11 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				}
 				if dataUser != nil {
 					assignToUser = append(assignToUser, map[string]interface{}{
-						"id":    dataUser.ID,
-						"name":  dataUser.Name,
-						"email": dataUser.Email,
+						"id":     dataUser.ID,
+						"name":   dataUser.Name,
+						"email":  dataUser.Email,
+						"divisi": dataUser.Divisi.Name,
+						"role":   dataUser.Role.Name,
 					})
 				}
 			}
@@ -367,6 +369,15 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		titleNotifWatch := fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
+
+		if userCreatedTask == nil {
+			userCreatedTask, err = s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			titleNotifWatch = fmt.Sprintf("Tugas yang dibuat staf anda telah dilihat oleh %s", userLogin.Name)
 		}
 
 		newTaskData := new(model.TaskEntityModel)
@@ -477,7 +488,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			if *payload.Watch {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
-				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
+				modelNotifikasi.Title = titleNotifWatch
 				modelNotifikasi.Message = fmt.Sprintf("Klik untuk melihat detail tugas: %s", taskData.Title)
 				modelNotifikasi.IsRead = false
 				modelNotifikasi.UserId = userCreatedTask.ID
@@ -494,7 +505,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if changesTaskTotal.NewBoard != nil {
+		if payload.BoardId != nil {
 			boardDataNew, err := s.BoardRepository.FindById(ctx, *changesTaskTotal.NewBoard)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -623,9 +634,11 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				}
 				if dataUser != nil {
 					assignToUser = append(assignToUser, map[string]interface{}{
-						"id":    dataUser.ID,
-						"name":  dataUser.Name,
-						"email": dataUser.Email,
+						"id":     dataUser.ID,
+						"name":   dataUser.Name,
+						"email":  dataUser.Email,
+						"divisi": dataUser.Divisi.Name,
+						"role":   dataUser.Role.Name,
 					})
 				}
 			}
@@ -757,9 +770,11 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 						}
 						if dataUser != nil {
 							assignToUser = append(assignToUser, map[string]interface{}{
-								"id":    dataUser.ID,
-								"name":  dataUser.Name,
-								"email": dataUser.Email,
+								"id":     dataUser.ID,
+								"name":   dataUser.Name,
+								"email":  dataUser.Email,
+								"divisi": dataUser.Divisi.Name,
+								"role":   dataUser.Role.Name,
 							})
 						}
 					}
@@ -893,9 +908,11 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				}
 				if dataUser != nil {
 					assignToUser = append(assignToUser, map[string]interface{}{
-						"id":    dataUser.ID,
-						"name":  dataUser.Name,
-						"email": dataUser.Email,
+						"id":     dataUser.ID,
+						"name":   dataUser.Name,
+						"email":  dataUser.Email,
+						"divisi": dataUser.Divisi.Name,
+						"role":   dataUser.Role.Name,
 					})
 				}
 			}

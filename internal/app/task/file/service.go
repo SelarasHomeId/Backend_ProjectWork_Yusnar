@@ -9,6 +9,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/gdrive"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
@@ -70,6 +71,13 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if userCreatedTask == nil {
+			userCreatedTask, err = s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		var allFileName []string = nil

@@ -129,9 +129,11 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCheckl
 					}
 					if dataUser != nil {
 						assignToUser = append(assignToUser, map[string]interface{}{
-							"id":    dataUser.ID,
-							"name":  dataUser.Name,
-							"email": dataUser.Email,
+							"id":     dataUser.ID,
+							"name":   dataUser.Name,
+							"email":  dataUser.Email,
+							"divisi": dataUser.Divisi.Name,
+							"role":   dataUser.Role.Name,
 						})
 					}
 				}
@@ -293,9 +295,11 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 					}
 					if dataUser != nil {
 						assignToUser = append(assignToUser, map[string]interface{}{
-							"id":    dataUser.ID,
-							"name":  dataUser.Name,
-							"email": dataUser.Email,
+							"id":     dataUser.ID,
+							"name":   dataUser.Name,
+							"email":  dataUser.Email,
+							"divisi": dataUser.Divisi.Name,
+							"role":   dataUser.Role.Name,
 						})
 					}
 				}

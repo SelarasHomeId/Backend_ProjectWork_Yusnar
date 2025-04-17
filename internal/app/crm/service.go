@@ -58,13 +58,16 @@ func (s *service) CalculateTask(ctx *abstraction.Context) (map[string]interface{
 				has_new = general.IsToday(t.CreatedAt)
 			}
 			resBoard = append(resBoard, map[string]interface{}{
+				"id":         b.ID,
 				"name":       b.Name,
 				"count_task": len(dataTask),
 				"has_new":    has_new,
+				"updated_at": b.UpdatedAt,
 			})
 		}
 
 		res = append(res, map[string]interface{}{
+			"id":        v.ID,
 			"workspace": v.Name,
 			"board":     resBoard,
 		})
