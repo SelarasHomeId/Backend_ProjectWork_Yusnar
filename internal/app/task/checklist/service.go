@@ -227,6 +227,21 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		itemInChecklist, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, taskChecklistData.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range itemInChecklist {
+			newChecklistItemData := new(model.ChecklistItemEntityModel)
+			newChecklistItemData.Context = ctx
+			newChecklistItemData.ID = v.ID
+			newChecklistItemData.IsDelete = true
+			if err = s.ChecklistItemRepository.Update(ctx, newChecklistItemData).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
 		newTaskData := new(model.TaskEntityModel)
 		newTaskData.Context = ctx
 		newTaskData.ID = taskChecklistData.TaskId
