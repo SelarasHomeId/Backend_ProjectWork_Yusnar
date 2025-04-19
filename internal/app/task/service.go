@@ -231,7 +231,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		countCommentData, err := s.TaskCommentRepository.CountByTaskId(ctx, v.ID)
+		countCommentData, err := s.TaskCommentRepository.CountCommentByTaskId(ctx, v.ID)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -855,7 +855,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, v.ID, true)
+		commentData, err := s.TaskCommentRepository.FindCommentByTaskId(ctx, v.ID, true)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

@@ -6,7 +6,7 @@ const (
 	ROLE_ID_ADMIN = 1
 	ROLE_ID_STAFF = 2
 
-	USER_ID_SYSTEM = 0
+	USER_ID_SYSTEM = 1
 
 	REDIS_REQUEST_IP_KEYS      = "reset-password:ip:%s"
 	REDIS_REQUEST_MAX_ATTEMPTS = 5

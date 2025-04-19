@@ -16,6 +16,8 @@ type TaskComment interface {
 	FindById(ctx *abstraction.Context, id int) (*model.TaskCommentEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.TaskCommentEntityModel) *gorm.DB
 	CreateHistory(ctx *abstraction.Context, taskId int, history string) *gorm.DB
+	FindCommentByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskCommentEntityModel, err error)
+	CountCommentByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error)
 }
 
 type task_comment struct {
@@ -92,4 +94,33 @@ func (r *task_comment) CreateHistory(ctx *abstraction.Context, taskId int, histo
 		},
 	}
 	return r.CheckTrx(ctx).Create(modelTaskComment)
+}
+
+func (r *task_comment) FindCommentByTaskId(ctx *abstraction.Context, task_id int, no_paging bool) (data []*model.TaskCommentEntityModel, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task_comment", "is_delete = @false AND is_history = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
+	order := "created_at DESC"
+	err = r.CheckTrx(ctx).
+		Where(where, whereParam).
+		Order(order).
+		Limit(limit).
+		Offset(offset).
+		Preload("CreateBy").
+		Preload("UpdateBy").
+		Find(&data).
+		Error
+	return
+}
+
+func (r *task_comment) CountCommentByTaskId(ctx *abstraction.Context, task_id int) (data *int, err error) {
+	where, whereParam := general.ProcessWhereParam(ctx, "task_comment", "is_delete = @false AND is_history = @false"+fmt.Sprintf(" AND task_id = %d", task_id))
+	var count model.TaskCommentCountDataModel
+	err = r.CheckTrx(ctx).
+		Table("task_comment").
+		Select("COUNT(*) AS count").
+		Where(where, whereParam).
+		Find(&count).
+		Error
+	data = &count.Count
+	return
 }
