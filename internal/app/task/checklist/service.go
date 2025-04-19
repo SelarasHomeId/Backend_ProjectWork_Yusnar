@@ -2,6 +2,7 @@ package checklist
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -29,6 +30,7 @@ type service struct {
 	TaskRepository          repository.Task
 	ChecklistItemRepository repository.ChecklistItem
 	UserRepository          repository.User
+	TaskCommentRepository   repository.TaskComment
 
 	DB *gorm.DB
 }
@@ -39,6 +41,7 @@ func NewService(f *factory.Factory) Service {
 		TaskRepository:          f.TaskRepository,
 		ChecklistItemRepository: f.ChecklistItemRepository,
 		UserRepository:          f.UserRepository,
+		TaskCommentRepository:   f.TaskCommentRepository,
 
 		DB: f.Db,
 	}
@@ -46,6 +49,11 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -63,6 +71,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCre
 			},
 		}
 		if err := s.TaskChecklistRepository.Create(ctx, modelTaskChecklist).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, fmt.Sprintf("Checklist (%s) telah ditambahkan oleh %s", payload.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -211,6 +223,11 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskChecklistUpd
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -247,6 +264,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 		newTaskData.ID = taskChecklistData.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Checklist (%s) telah dihapus oleh %s", taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

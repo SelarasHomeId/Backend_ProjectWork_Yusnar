@@ -15,6 +15,7 @@ type TaskComment interface {
 	Create(ctx *abstraction.Context, data *model.TaskCommentEntityModel) *gorm.DB
 	FindById(ctx *abstraction.Context, id int) (*model.TaskCommentEntityModel, error)
 	Update(ctx *abstraction.Context, data *model.TaskCommentEntityModel) *gorm.DB
+	CreateHistory(ctx *abstraction.Context, taskId int, history string) *gorm.DB
 }
 
 type task_comment struct {
@@ -78,4 +79,17 @@ func (r *task_comment) FindById(ctx *abstraction.Context, id int) (*model.TaskCo
 
 func (r *task_comment) Update(ctx *abstraction.Context, data *model.TaskCommentEntityModel) *gorm.DB {
 	return r.CheckTrx(ctx).Model(data).Where("id = ?", data.ID).Updates(data)
+}
+
+func (r *task_comment) CreateHistory(ctx *abstraction.Context, taskId int, history string) *gorm.DB {
+	modelTaskComment := &model.TaskCommentEntityModel{
+		Context: ctx,
+		TaskCommentEntity: model.TaskCommentEntity{
+			TaskId:    taskId,
+			Comment:   history,
+			IsDelete:  false,
+			IsHistory: true,
+		},
+	}
+	return r.CheckTrx(ctx).Create(modelTaskComment)
 }

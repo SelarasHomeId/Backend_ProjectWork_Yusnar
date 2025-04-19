@@ -2,15 +2,17 @@ package model
 
 import (
 	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/general"
 
 	"gorm.io/gorm"
 )
 
 type TaskCommentEntity struct {
-	TaskId   int    `json:"task_id"`
-	Comment  string `json:"comment"`
-	IsDelete bool   `json:"is_delete"`
+	TaskId    int    `json:"task_id"`
+	Comment   string `json:"comment"`
+	IsDelete  bool   `json:"is_delete"`
+	IsHistory bool   `json:"is_history"`
 }
 
 // TaskCommentEntityModel ...
@@ -46,6 +48,9 @@ func (m *TaskCommentEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 
 func (m *TaskCommentEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	m.CreatedBy = m.Context.Auth.ID
+	if m.IsHistory {
+		m.CreatedBy = constant.USER_ID_SYSTEM
+	}
 	// m.CreatedAt = *general.NowLocal()
 	return
 }

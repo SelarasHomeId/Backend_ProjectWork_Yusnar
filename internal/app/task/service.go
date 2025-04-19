@@ -138,6 +138,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, fmt.Sprintf("Tugas dibuat oleh %s", userLogin.Name)).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		returnId = modelTask.ID
 		return nil
 	}); err != nil {
@@ -151,6 +155,11 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskData, err := s.TaskRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -180,6 +189,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 		newBoardData.ID = boardData.ID
 		newBoardData.TaskTotal = boardData.TaskTotal - 1
 		if err = s.BoardRepository.UpdateTaskTotalById(ctx, newBoardData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, fmt.Sprintf("Tugas dihapus oleh %s", userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -716,6 +729,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"task_id":    v.TaskId,
 				"comment":    v.Comment,
 				"is_delete":  v.IsDelete,
+				"is_history": v.IsHistory,
 				"created_at": v.CreatedAt,
 				"updated_at": v.UpdatedAt,
 				"created_by": map[string]interface{}{

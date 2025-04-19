@@ -358,6 +358,9 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 	if ctx.QueryParam("is_completed") != "" {
 		where += " AND is_completed = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_completed"))
 	}
+	if ctx.QueryParam("is_history") != "" {
+		where += " AND is_history = @" + SanitizeStringOfAlphabet(ctx.QueryParam("is_history"))
+	}
 	if ctx.QueryParam("login_from") != "" {
 		val := "%" + SanitizeString(ctx.QueryParam("login_from")) + "%"
 		where += " AND LOWER(login_from) LIKE @login_from"

@@ -29,10 +29,11 @@ type Service interface {
 }
 
 type service struct {
-	TaskRepository       repository.Task
-	TaskFileRepository   repository.TaskFile
-	UserRepository       repository.User
-	NotifikasiRepository repository.Notifikasi
+	TaskRepository        repository.Task
+	TaskFileRepository    repository.TaskFile
+	UserRepository        repository.User
+	NotifikasiRepository  repository.Notifikasi
+	TaskCommentRepository repository.TaskComment
 
 	DB     *gorm.DB
 	sDrive *drive.Service
@@ -41,10 +42,11 @@ type service struct {
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		TaskRepository:       f.TaskRepository,
-		TaskFileRepository:   f.TaskFileRepository,
-		UserRepository:       f.UserRepository,
-		NotifikasiRepository: f.NotifikasiRepository,
+		TaskRepository:        f.TaskRepository,
+		TaskFileRepository:    f.TaskFileRepository,
+		UserRepository:        f.UserRepository,
+		NotifikasiRepository:  f.NotifikasiRepository,
+		TaskCommentRepository: f.TaskCommentRepository,
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
@@ -133,6 +135,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, fmt.Sprintf("File: (%s) telah ditambahkan oleh %s", strings.Join(allFileName, ", "), userLogin.Name)).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		return nil
 	}); err != nil {
 		for _, v := range allFileUploaded {
@@ -197,12 +203,22 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskFileFi
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskFileData, err := s.TaskFileRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if taskFileData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task file not found")
+		}
+
+		file, err := gdrive.GetFile(s.sDrive, taskFileData.File)
+		if err != nil {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
 		}
 
 		newTaskFileData := new(model.TaskFileEntityModel)
@@ -218,6 +234,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteBy
 		newTaskData.ID = taskFileData.TaskId
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskFileData.TaskId, fmt.Sprintf("File: (%s) telah dihapus oleh %s", file.Name, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

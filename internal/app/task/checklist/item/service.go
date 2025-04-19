@@ -35,6 +35,7 @@ type service struct {
 	TaskRepository          repository.Task
 	BoardRepository         repository.Board
 	NotifikasiRepository    repository.Notifikasi
+	TaskCommentRepository   repository.TaskComment
 
 	DB      *gorm.DB
 	DbRedis *redis.Client
@@ -56,6 +57,11 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, payload.TaskChecklistId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -98,6 +104,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 		}
 
 		if err := s.ChecklistItemRepository.Create(ctx, modelChecklistItem).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) untuk Checklist (%s) telah ditambahkan oleh %s", payload.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -257,12 +267,22 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if checklistItemData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "checklist item not found")
+		}
+
+		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, checklistItemData.TaskChecklistId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		newChecklistItemData := new(model.ChecklistItemEntityModel)
@@ -278,6 +298,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 		newTaskChecklistData.ID = checklistItemData.TaskChecklistId
 		newTaskChecklistData.UpdatedAt = general.NowLocal()
 		if err = s.TaskChecklistRepository.Update(ctx, newTaskChecklistData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) untuk Checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -392,6 +416,10 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 		newTaskChecklistData.ID = checklistItemData.TaskChecklistId
 		newTaskChecklistData.UpdatedAt = general.NowLocal()
 		if err = s.TaskChecklistRepository.Update(ctx, newTaskChecklistData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) dari Checklist (%s) telah di konversi ke task oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

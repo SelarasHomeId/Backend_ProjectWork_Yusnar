@@ -79,9 +79,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		modelTaskComment := &model.TaskCommentEntityModel{
 			Context: ctx,
 			TaskCommentEntity: model.TaskCommentEntity{
-				TaskId:   payload.TaskId,
-				Comment:  payload.Comment,
-				IsDelete: false,
+				TaskId:    payload.TaskId,
+				Comment:   payload.Comment,
+				IsDelete:  false,
+				IsHistory: false,
 			},
 		}
 
@@ -143,6 +144,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCommen
 			"task_id":    v.TaskId,
 			"comment":    v.Comment,
 			"is_delete":  v.IsDelete,
+			"is_history": v.IsHistory,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
 			"created_by": map[string]interface{}{
