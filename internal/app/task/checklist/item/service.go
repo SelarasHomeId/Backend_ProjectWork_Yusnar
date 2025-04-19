@@ -403,6 +403,10 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, fmt.Sprintf("Tugas dikonversi dari item (%s) pada checklist (%s) oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		newChecklistItemData := new(model.ChecklistItemEntityModel)
 		newChecklistItemData.Context = ctx
 		newChecklistItemData.ID = payload.ID
