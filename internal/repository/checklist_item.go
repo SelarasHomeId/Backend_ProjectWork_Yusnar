@@ -106,7 +106,7 @@ func (r *checklist_item) UpdateCompleted(ctx *abstraction.Context, data *model.C
 }
 
 func (r *checklist_item) CountByTaskId(ctx *abstraction.Context, task_id int) (is_check *int, total_check *int, err error) {
-	where, whereParam := general.ProcessWhereParam(ctx, "checklist_item", "checklist_item.is_delete = @false"+fmt.Sprintf(" AND task.id = %d", task_id))
+	where, whereParam := general.ProcessWhereParam(ctx, "checklist_item", "checklist_item.is_delete = @false AND task_checklist.is_delete = @false"+fmt.Sprintf(" AND task.id = %d", task_id))
 	var count model.ChecklistItemCountDataModel
 	err = r.CheckTrx(ctx).
 		Table("checklist_item").
