@@ -49,6 +49,7 @@ func NewService(f *factory.Factory) Service {
 		TaskRepository:          f.TaskRepository,
 		BoardRepository:         f.BoardRepository,
 		NotifikasiRepository:    f.NotifikasiRepository,
+		TaskCommentRepository:   f.TaskCommentRepository,
 
 		DB:      f.Db,
 		DbRedis: f.DbRedis,
