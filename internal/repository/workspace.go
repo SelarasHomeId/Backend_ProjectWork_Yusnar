@@ -54,10 +54,10 @@ func (r *workspace) FindByProjectId(ctx *abstraction.Context, project_id int) (*
 func (r *workspace) Find(ctx *abstraction.Context, no_paging bool) (data []*model.WorkspaceEntityModel, err error) {
 	where, whereParam := general.ProcessWhereParam(ctx, "workspace", "is_delete = @false")
 	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
-	order := general.ProcessOrder(ctx)
+	// order := general.ProcessOrder(ctx)
 	err = r.CheckTrx(ctx).
 		Where(where, whereParam).
-		Order(order).
+		// Order(order).
 		Limit(limit).
 		Offset(offset).
 		Find(&data).
