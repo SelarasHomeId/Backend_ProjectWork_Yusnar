@@ -43,7 +43,7 @@ func InitGoogleDrive() (*drive.Service, *drive.File, error) {
 	}
 
 	if folderUsed == nil {
-		folder, err := CreateFolder(service, "SelarasHomeId", "root")
+		folder, err := CreateFolder(service, "SelarasHomeId_App", "root")
 		if err != nil {
 			logrus.Printf("Cannot create folder to Google Drive: %v\n", err)
 			return nil, nil, err
