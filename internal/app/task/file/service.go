@@ -107,6 +107,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 				TaskFileEntity: model.TaskFileEntity{
 					TaskId:   payload.TaskId,
 					File:     newFile.Id,
+					FileName: newFile.Name,
 					IsDelete: false,
 				},
 			}
@@ -189,6 +190,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskFileFi
 				"ext":     file.FileExtension,
 				"name":    file.Name,
 			},
+			"file_name":  v.FileName,
 			"is_delete":  v.IsDelete,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
@@ -260,16 +262,17 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task file not found")
 		}
 
+		newTaskFileData := new(model.TaskFileEntityModel)
+		newTaskFileData.Context = ctx
+		newTaskFileData.ID = payload.ID
 		if payload.Name != nil {
 			_, err := gdrive.RenameFile(s.sDrive, taskFileData.File, *payload.Name)
 			if err != nil {
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "failed rename file: "+err.Error())
 			}
+			newTaskFileData.FileName = *payload.Name
 		}
 
-		newTaskFileData := new(model.TaskFileEntityModel)
-		newTaskFileData.Context = ctx
-		newTaskFileData.ID = payload.ID
 		newTaskFileData.UpdatedAt = general.NowLocal()
 		if err = s.TaskFileRepository.Update(ctx, newTaskFileData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")

@@ -10,6 +10,7 @@ import (
 type TaskFileEntity struct {
 	TaskId   int    `json:"task_id"`
 	File     string `json:"file"`
+	FileName string `json:"file_name"`
 	IsDelete bool   `json:"is_delete"`
 }
 

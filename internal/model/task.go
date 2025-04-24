@@ -17,6 +17,7 @@ type TaskEntity struct {
 	IsCompleted  bool       `json:"is_completed"`
 	DueDate      *time.Time `json:"due_date"`
 	Cover        *string    `json:"cover"`
+	CoverName    *string    `json:"cover_name"`
 	IsDelete     bool       `json:"is_delete"`
 	SortNumber   int        `json:"sort_number"`
 }

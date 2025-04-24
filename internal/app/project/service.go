@@ -105,6 +105,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ProjectCreateReq
 			allFileUploaded = append(allFileUploaded, newFile.Id)
 
 			modelProject.Cover = &newFile.Id
+			modelProject.CoverName = &newFile.Name
 		}
 
 		if err := s.ProjectRepository.Create(ctx, modelProject).Error; err != nil {
@@ -171,6 +172,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"name":       v.Name,
 			"location":   v.Location,
 			"cover":      v.Cover,
+			"cover_name": v.CoverName,
 			"is_delete":  v.IsDelete,
 			"created_at": v.CreatedAt,
 			"updated_at": v.UpdatedAt,
@@ -248,6 +250,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ProjectUpdateReq
 			allFileUploaded = append(allFileUploaded, newFile.Id)
 
 			newProjectData.Cover = &newFile.Id
+			newProjectData.CoverName = &newFile.Name
 
 			if projectData.Cover != nil {
 				err = gdrive.DeleteFile(s.sDrive, *projectData.Cover)
@@ -262,6 +265,9 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ProjectUpdateReq
 					logrus.Error("error delete file for cover:", errDel.Error())
 				}
 				if err = s.ProjectRepository.UpdateToNull(ctx, newProjectData, "cover").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if err = s.ProjectRepository.UpdateToNull(ctx, newProjectData, "cover_name").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -394,6 +400,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 			"name":       data.Name,
 			"location":   data.Location,
 			"cover":      data.Cover,
+			"cover_name": data.CoverName,
 			"is_delete":  data.IsDelete,
 			"created_at": data.CreatedAt,
 			"updated_at": data.UpdatedAt,

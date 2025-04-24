@@ -268,6 +268,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			"is_completed":   v.IsCompleted,
 			"due_date":       v.DueDate,
 			"cover":          v.Cover,
+			"cover_name":     v.CoverName,
 			"file":           countFileData,
 			"comment":        countCommentData,
 			"checklist":      nil,
@@ -477,6 +478,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			allFileUploaded = append(allFileUploaded, newFile.Id)
 
 			newTaskData.Cover = &newFile.Id
+			newTaskData.CoverName = &newFile.Name
 
 			if taskData.Cover != nil {
 				err = gdrive.DeleteFile(s.sDrive, *taskData.Cover)
@@ -491,6 +493,9 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					logrus.Error("error delete file for cover:", errDel.Error())
 				}
 				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "cover").Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "cover_name").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -612,6 +617,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			"is_completed":   data.IsCompleted,
 			"due_date":       data.DueDate,
 			"cover":          data.Cover,
+			"cover_name":     data.CoverName,
 			"file":           nil,
 			"comment":        nil,
 			"checklist":      nil,
@@ -712,6 +718,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 					"ext":     fileDrive.FileExtension,
 					"name":    fileDrive.Name,
 				},
+				"file_name":  v.FileName,
 				"is_delete":  v.IsDelete,
 				"created_at": v.CreatedAt,
 				"updated_at": v.UpdatedAt,
@@ -892,6 +899,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"is_completed":   v.IsCompleted,
 			"due_date":       v.DueDate,
 			"cover":          v.Cover,
+			"cover_name":     v.CoverName,
 			"file":           len(fileData),
 			"comment":        len(commentData),
 			"checklist":      nil,
