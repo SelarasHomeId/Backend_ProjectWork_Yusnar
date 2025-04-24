@@ -1,7 +1,7 @@
 package constant
 
 const (
-	DRIVE_FOLDER = "SelarasHomeId"
+	DRIVE_FOLDER = "SelarasHomeId_App"
 
 	ROLE_ID_ADMIN = 1
 	ROLE_ID_STAFF = 2
