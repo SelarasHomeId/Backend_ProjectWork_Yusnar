@@ -50,7 +50,7 @@ func NewService(f *factory.Factory) Service {
 
 		DB:     f.Db,
 		sDrive: f.GDrive.Service,
-		fDrive: f.GDrive.Folder,
+		fDrive: f.GDrive.FolderProjectCover,
 	}
 }
 

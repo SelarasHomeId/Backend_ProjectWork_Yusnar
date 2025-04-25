@@ -35,7 +35,7 @@ func NewService(f *factory.Factory) Service {
 	repository := f.BannerRepository
 	db := f.Db
 	sDrive := f.GDrive.Service
-	fDrive := f.GDrive.Folder
+	fDrive := f.GDrive.FolderSelarasHomeId
 	return &service{
 		repository,
 		db,

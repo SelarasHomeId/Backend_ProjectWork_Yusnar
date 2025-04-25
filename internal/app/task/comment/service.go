@@ -14,7 +14,6 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
-	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
 
@@ -31,9 +30,7 @@ type service struct {
 	UserRepository        repository.User
 	NotifikasiRepository  repository.Notifikasi
 
-	DB     *gorm.DB
-	sDrive *drive.Service
-	fDrive *drive.File
+	DB *gorm.DB
 }
 
 func NewService(f *factory.Factory) Service {
@@ -43,9 +40,7 @@ func NewService(f *factory.Factory) Service {
 		UserRepository:        f.UserRepository,
 		NotifikasiRepository:  f.NotifikasiRepository,
 
-		DB:     f.Db,
-		sDrive: f.GDrive.Service,
-		fDrive: f.GDrive.Folder,
+		DB: f.Db,
 	}
 }
 

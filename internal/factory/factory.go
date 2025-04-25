@@ -2,10 +2,12 @@ package factory
 
 import (
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/database"
 	"selarashomeid/pkg/gdrive"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/sirupsen/logrus"
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
@@ -42,8 +44,11 @@ type Repository_initiated struct {
 }
 
 type GoogleDrive struct {
-	Service *drive.Service
-	Folder  *drive.File
+	Service             *drive.Service
+	FolderSelarasHomeId *drive.File
+	FolderAttachment    *drive.File
+	FolderProjectCover  *drive.File
+	FolderTaskCover     *drive.File
 }
 
 func NewFactory() *Factory {
@@ -69,12 +74,31 @@ func (f *Factory) SetupDbRedis() {
 }
 
 func (f *Factory) SetupGoogleDrive() {
-	service, folder, err := gdrive.InitGoogleDrive()
+	service, err := gdrive.InitService()
 	if err != nil {
 		panic("Failed setup gdrive, connection is undefined")
 	}
+	folderSelarasHomeId, err := gdrive.InitFolder(service, constant.DRIVE_FOLDER, "root")
+	if err != nil {
+		logrus.Infof("Failed setup folder %s, cause: %s", constant.DRIVE_FOLDER, err.Error())
+	}
+	folderAttachment, err := gdrive.InitFolder(service, "attachment", folderSelarasHomeId.Id)
+	if err != nil {
+		logrus.Infof("Failed setup folder %s, cause: %s", "attachment", err.Error())
+	}
+	folderProjectCover, err := gdrive.InitFolder(service, "project_cover", folderSelarasHomeId.Id)
+	if err != nil {
+		logrus.Infof("Failed setup folder %s, cause: %s", "project_cover", err.Error())
+	}
+	folderTaskCover, err := gdrive.InitFolder(service, "task_cover", folderSelarasHomeId.Id)
+	if err != nil {
+		logrus.Infof("Failed setup folder %s, cause: %s", "task_cover", err.Error())
+	}
 	f.GDrive.Service = service
-	f.GDrive.Folder = folder
+	f.GDrive.FolderSelarasHomeId = folderSelarasHomeId
+	f.GDrive.FolderAttachment = folderAttachment
+	f.GDrive.FolderProjectCover = folderProjectCover
+	f.GDrive.FolderTaskCover = folderTaskCover
 }
 
 func (f *Factory) SetupRepository() {

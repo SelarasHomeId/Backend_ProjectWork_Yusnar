@@ -43,7 +43,7 @@ func NewService(f *factory.Factory) Service {
 		BannerRepository: f.BannerRepository,
 		DB:               f.Db,
 		sDrive:           f.GDrive.Service,
-		fDrive:           f.GDrive.Folder,
+		fDrive:           f.GDrive.FolderSelarasHomeId,
 	}
 }
 

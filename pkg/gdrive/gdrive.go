@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"selarashomeid/internal/config"
-	"selarashomeid/pkg/constant"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -17,13 +16,14 @@ import (
 	"google.golang.org/api/option"
 )
 
-func InitGoogleDrive() (*drive.Service, *drive.File, error) {
+// connection
+func InitService() (*drive.Service, error) {
 	credentialsJson := config.Get().Drive.CredentialsDrive
 
 	config, err := google.ConfigFromJSON([]byte(credentialsJson), drive.DriveScope)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	client := getClient(config)
@@ -31,32 +31,85 @@ func InitGoogleDrive() (*drive.Service, *drive.File, error) {
 	service, err := drive.NewService(context.Background(), option.WithHTTPClient(client))
 	if err != nil {
 		logrus.Printf("Cannot create the Google Drive service: %v\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	logrus.Info("Google Drive ready!")
+	return service, nil
+}
 
-	folderUsed, err := CheckFolderByName(service, constant.DRIVE_FOLDER, "root")
+func InitFolder(service *drive.Service, folder string, parentId string) (*drive.File, error) {
+	folderUsed, err := CheckFolderByName(service, folder, parentId)
 	if err != nil {
 		logrus.Printf("Cannot check folder by name from Google Drive: %v\n", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	if folderUsed == nil {
-		folder, err := CreateFolder(service, "SelarasHomeId_App", "root")
+		folderCreated, err := CreateFolder(service, folder, parentId)
 		if err != nil {
 			logrus.Printf("Cannot create folder to Google Drive: %v\n", err)
-			return nil, nil, err
+			return nil, err
 		}
 
-		logrus.Info("Root folder created!")
-		return service, folder, nil
+		logrus.Infof("Folder %s created!", folder)
+		return folderCreated, nil
 	} else {
-		logrus.Info("Root folder ready!")
-		return service, folderUsed, nil
+		logrus.Infof("Folder %s ready!", folder)
+		return folderUsed, nil
 	}
 }
 
+func getClient(config *oauth2.Config) *http.Client {
+	tok, err := tokenFromEnv()
+	if err != nil {
+		tok = getTokenFromWeb(config)
+		saveTokenToEnv(tok)
+		logrus.Info("Regenerate token Google Drive!")
+	}
+	logrus.Info("Google Drive client found!")
+	return config.Client(context.Background(), tok)
+}
+
+func tokenFromEnv() (*oauth2.Token, error) {
+	tokenJSON := os.Getenv("TOKEN_DRIVE")
+	if tokenJSON == "" {
+		return nil, fmt.Errorf("TOKEN_DRIVE environment variable is not set")
+	}
+	tok := &oauth2.Token{}
+	err := json.Unmarshal([]byte(tokenJSON), tok)
+	return tok, err
+}
+
+func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+	refreshToken := os.Getenv("REFRESH_DRIVE")
+	if refreshToken == "" {
+		logrus.Printf("REFRESH_TOKEN environment variable is not set")
+		return nil
+	}
+
+	tok := &oauth2.Token{RefreshToken: refreshToken}
+	tokSource := config.TokenSource(context.Background(), tok)
+
+	newToken, err := tokSource.Token()
+	if err != nil {
+		logrus.Printf("Unable to retrieve token from web: %v", err)
+		return nil
+	}
+
+	return newToken
+}
+
+func saveTokenToEnv(token *oauth2.Token) {
+	tokenJSON, err := json.Marshal(token)
+	if err != nil {
+		logrus.Printf("Failed to marshal token: %v", err)
+		return
+	}
+	os.Setenv("TOKEN_DRIVE", string(tokenJSON))
+}
+
+// action
 func CheckFolderByName(service *drive.Service, name string, parentId string) (*drive.File, error) {
 	query := fmt.Sprintf("name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false", name, parentId)
 
@@ -152,53 +205,4 @@ func RenameFile(service *drive.Service, fileID, newName string) (*drive.File, er
 	}
 
 	return updatedFile, nil
-}
-
-func getClient(config *oauth2.Config) *http.Client {
-	tok, err := tokenFromEnv()
-	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveTokenToEnv(tok)
-		logrus.Info("Regenerate token Google Drive!")
-	}
-	logrus.Info("Google Drive client found!")
-	return config.Client(context.Background(), tok)
-}
-
-func tokenFromEnv() (*oauth2.Token, error) {
-	tokenJSON := os.Getenv("TOKEN_DRIVE")
-	if tokenJSON == "" {
-		return nil, fmt.Errorf("TOKEN_DRIVE environment variable is not set")
-	}
-	tok := &oauth2.Token{}
-	err := json.Unmarshal([]byte(tokenJSON), tok)
-	return tok, err
-}
-
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
-	refreshToken := os.Getenv("REFRESH_DRIVE")
-	if refreshToken == "" {
-		logrus.Printf("REFRESH_TOKEN environment variable is not set")
-		return nil
-	}
-
-	tok := &oauth2.Token{RefreshToken: refreshToken}
-	tokSource := config.TokenSource(context.Background(), tok)
-
-	newToken, err := tokSource.Token()
-	if err != nil {
-		logrus.Printf("Unable to retrieve token from web: %v", err)
-		return nil
-	}
-
-	return newToken
-}
-
-func saveTokenToEnv(token *oauth2.Token) {
-	tokenJSON, err := json.Marshal(token)
-	if err != nil {
-		logrus.Printf("Failed to marshal token: %v", err)
-		return
-	}
-	os.Setenv("TOKEN_DRIVE", string(tokenJSON))
 }

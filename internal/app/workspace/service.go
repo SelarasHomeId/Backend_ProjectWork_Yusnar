@@ -38,7 +38,6 @@ type service struct {
 	DB      *gorm.DB
 	DbRedis redis.Client
 	sDrive  *drive.Service
-	fDrive  *drive.File
 }
 
 func NewService(f *factory.Factory) Service {
@@ -56,7 +55,6 @@ func NewService(f *factory.Factory) Service {
 		DB:      f.Db,
 		DbRedis: *f.DbRedis,
 		sDrive:  f.GDrive.Service,
-		fDrive:  f.GDrive.Folder,
 	}
 }
 
