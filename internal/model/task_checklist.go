@@ -41,6 +41,6 @@ func (m *TaskChecklistEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *TaskChecklistEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	// m.CreatedAt = *general.NowLocal()
+	m.CreatedAt = *general.Now()
 	return
 }

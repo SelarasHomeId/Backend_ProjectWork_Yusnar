@@ -2,6 +2,7 @@ package model
 
 import (
 	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/util/general"
 
 	"gorm.io/gorm"
 )
@@ -36,6 +37,6 @@ type ContactCountDataModel struct {
 }
 
 func (m *ContactEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	// m.CreatedAt = *general.NowLocal()
+	m.CreatedAt = *general.Now()
 	return
 }

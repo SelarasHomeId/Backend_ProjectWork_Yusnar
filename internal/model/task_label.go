@@ -41,6 +41,6 @@ func (m *TaskLabelEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *TaskLabelEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	// m.CreatedAt = *general.NowLocal()
+	m.CreatedAt = *general.Now()
 	return
 }

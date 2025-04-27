@@ -42,6 +42,6 @@ func (m *BannerEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *BannerEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	// m.CreatedAt = *general.NowLocal()
+	m.CreatedAt = *general.Now()
 	return
 }

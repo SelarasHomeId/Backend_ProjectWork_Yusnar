@@ -370,22 +370,22 @@ func ProcessWhereParam(ctx *abstraction.Context, searchType string, whereStr str
 		val := SanitizeStringDateBetween(ctx.QueryParam("due_date"))
 		valDate := strings.Split(val, "_")
 		where += " AND due_date BETWEEN @start_due_date AND @end_due_date"
-		whereParam["start_due_date"] = valDate[0]
-		whereParam["end_due_date"] = valDate[1]
+		whereParam["start_due_date"] = valDate[0] + " 00:00:00"
+		whereParam["end_due_date"] = valDate[1] + " 23:59:59"
 	}
 	if ctx.QueryParam("created_at") != "" {
 		val := SanitizeStringDateBetween(ctx.QueryParam("created_at"))
 		valDate := strings.Split(val, "_")
 		where += " AND created_at BETWEEN @start_created_at AND @end_created_at"
-		whereParam["start_created_at"] = valDate[0]
-		whereParam["end_created_at"] = valDate[1]
+		whereParam["start_created_at"] = valDate[0] + " 00:00:00"
+		whereParam["end_created_at"] = valDate[1] + " 23:59:59"
 	}
 	if ctx.QueryParam("updated_at") != "" {
 		val := SanitizeStringDateBetween(ctx.QueryParam("updated_at"))
 		valDate := strings.Split(val, "_")
 		where += " AND updated_at BETWEEN @start_updated_at AND @end_updated_at"
-		whereParam["start_updated_at"] = valDate[0]
-		whereParam["end_updated_at"] = valDate[1]
+		whereParam["start_updated_at"] = valDate[0] + " 00:00:00"
+		whereParam["end_updated_at"] = valDate[1] + " 23:59:59"
 	}
 
 	return where, whereParam

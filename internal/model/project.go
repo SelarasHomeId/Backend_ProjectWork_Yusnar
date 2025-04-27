@@ -43,6 +43,6 @@ func (m *ProjectEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *ProjectEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	// m.CreatedAt = *general.NowLocal()
+	m.CreatedAt = *general.Now()
 	return
 }
