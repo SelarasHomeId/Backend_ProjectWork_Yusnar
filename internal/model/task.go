@@ -54,7 +54,7 @@ func (m *TaskEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *TaskEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	m.CreatedBy = m.Context.Auth.ID
 	return
 }

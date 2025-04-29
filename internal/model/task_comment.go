@@ -51,6 +51,6 @@ func (m *TaskCommentEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
 	if m.IsHistory {
 		m.CreatedBy = constant.USER_ID_SYSTEM
 	}
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }

@@ -48,6 +48,6 @@ func (m *ChecklistItemEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *ChecklistItemEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }

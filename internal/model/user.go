@@ -49,6 +49,6 @@ func (m *UserEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *UserEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }

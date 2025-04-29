@@ -41,6 +41,6 @@ func (m *WorkspaceEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *WorkspaceEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }

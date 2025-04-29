@@ -43,7 +43,7 @@ func (m *BoardEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *BoardEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }
 

@@ -2,7 +2,6 @@ package model
 
 import (
 	"selarashomeid/internal/abstraction"
-	"selarashomeid/pkg/util/general"
 
 	"gorm.io/gorm"
 )
@@ -39,6 +38,6 @@ type AffiliateCountDataModel struct {
 }
 
 func (m *AffiliateEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }

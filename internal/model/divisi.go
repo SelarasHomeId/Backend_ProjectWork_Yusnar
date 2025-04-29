@@ -40,6 +40,6 @@ func (m *DivisiEntityModel) BeforeUpdate(tx *gorm.DB) (err error) {
 }
 
 func (m *DivisiEntityModel) BeforeCreate(tx *gorm.DB) (err error) {
-	m.CreatedAt = *general.Now()
+	// m.CreatedAt = *general.Now()
 	return
 }
