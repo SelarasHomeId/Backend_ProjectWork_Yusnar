@@ -27,7 +27,7 @@ type dbMySQL struct {
 }
 
 func (c *dbMySQL) Init() (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", c.User, c.Pass, c.Host, c.Port, c.Name)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=%s", c.User, c.Pass, c.Host, c.Port, c.Name, "Asia%2fJakarta")
 
 	var level logger.LogLevel = 4
 	if gormLevel, _ := strconv.Atoi(config.Get().Logging.GormLevel); gormLevel != 0 {
