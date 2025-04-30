@@ -31,6 +31,8 @@ type DB struct {
 	DbPass string
 	DbPort string
 	DbName string
+	DbSsl  string
+	DbTz   string
 }
 
 type Redis struct {
@@ -97,6 +99,8 @@ func Init() *Configuration {
 	defaultConfig.DB.DbPass = os.Getenv("DB_PASS")
 	defaultConfig.DB.DbPort = os.Getenv("DB_PORT")
 	defaultConfig.DB.DbName = os.Getenv("DB_NAME")
+	defaultConfig.DB.DbSsl = os.Getenv("DB_SSL")
+	defaultConfig.DB.DbTz = os.Getenv("DB_TZ")
 	defaultConfig.Redis.RedisHost = os.Getenv("REDIS_HOST")
 	defaultConfig.Redis.RedisUser = os.Getenv("REDIS_USER")
 	defaultConfig.Redis.RedisPassword = os.Getenv("REDIS_PASS")

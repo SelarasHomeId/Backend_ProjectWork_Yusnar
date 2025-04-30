@@ -20,6 +20,8 @@ type db struct {
 	Pass string
 	Port string
 	Name string
+	Ssl  string
+	Tz   string
 }
 
 type dbMySQL struct {
@@ -27,7 +29,7 @@ type dbMySQL struct {
 }
 
 func (c *dbMySQL) Init() (*gorm.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=%s", c.User, c.Pass, c.Host, c.Port, c.Name, "Asia%2fJakarta")
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=%s&tls=%s", c.User, c.Pass, c.Host, c.Port, c.Name, c.Tz, c.Ssl)
 
 	var level logger.LogLevel = 4
 	if gormLevel, _ := strconv.Atoi(config.Get().Logging.GormLevel); gormLevel != 0 {
