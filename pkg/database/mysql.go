@@ -22,6 +22,8 @@ func Init() {
 				Pass: config.Get().DB.DbPass,
 				Port: config.Get().DB.DbPort,
 				Name: config.Get().DB.DbName,
+				Ssl:  config.Get().DB.DbSsl,
+				Tz:   config.Get().DB.DbTz,
 			},
 		},
 	}
