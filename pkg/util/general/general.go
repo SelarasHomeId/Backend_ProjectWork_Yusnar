@@ -485,8 +485,12 @@ func ValidateImage(filename string) (bool, string) {
 	return false, fullFileName
 }
 
-func StringToArrayInt(ids string) []int {
-	idArray := strings.Split(ids, ",")
+func StringToArrayInt(ids *string) []int {
+	var idArray []string
+
+	if ids != nil {
+		idArray = strings.Split(*ids, ",")
+	}
 
 	var idInts []int
 	for _, id := range idArray {

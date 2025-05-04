@@ -208,7 +208,7 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 
 			if v.AssignToUser != nil {
 				var assignToUser []map[string]interface{}
-				assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
+				assignToUserArr := general.StringToArrayInt(v.AssignToUser)
 				for _, v := range assignToUserArr {
 					dataUser, err := s.UserRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {
@@ -246,7 +246,7 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 
 			if v.Label != nil {
 				var label []map[string]interface{}
-				labelArr := general.StringToArrayInt(*v.Label)
+				labelArr := general.StringToArrayInt(v.Label)
 				for _, v := range labelArr {
 					dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {

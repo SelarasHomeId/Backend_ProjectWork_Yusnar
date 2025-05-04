@@ -76,7 +76,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -268,7 +268,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteBy
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -384,7 +384,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {

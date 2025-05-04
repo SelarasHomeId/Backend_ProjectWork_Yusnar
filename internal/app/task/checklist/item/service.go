@@ -83,7 +83,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -210,7 +210,7 @@ func (s *service) FindByTaskChecklistId(ctx *abstraction.Context, payload *dto.C
 
 		if v.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(v.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -273,7 +273,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -287,7 +287,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 
 		var assignedMemberChecklist []*model.UserEntityModel
 		if checklistItemData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(checklistItemData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -335,7 +335,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
-			added, removed := general.DiffIntSlices(general.StringToArrayInt(*checklistItemData.AssignToUser), payload.AssignToUser)
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(checklistItemData.AssignToUser), payload.AssignToUser)
 			if added != nil {
 				var userAddedArr []string
 				for _, v := range added {
@@ -536,7 +536,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -550,7 +550,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 
 		var assignedMemberChecklist []*model.UserEntityModel
 		if checklistItemData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(checklistItemData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -703,7 +703,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -717,7 +717,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 
 		var assignedMemberChecklist []*model.UserEntityModel
 		if checklistItemData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(checklistItemData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {

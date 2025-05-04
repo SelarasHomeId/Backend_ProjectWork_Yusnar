@@ -72,7 +72,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCre
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -198,7 +198,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCheckl
 
 			if ci.AssignToUser != nil {
 				var assignToUser []map[string]interface{}
-				assignToUserArr := general.StringToArrayInt(*ci.AssignToUser)
+				assignToUserArr := general.StringToArrayInt(ci.AssignToUser)
 				for _, v := range assignToUserArr {
 					dataUser, err := s.UserRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {
@@ -276,7 +276,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskChecklistUpd
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -401,7 +401,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -543,7 +543,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 
 			if ci.AssignToUser != nil {
 				var assignToUser []map[string]interface{}
-				assignToUserArr := general.StringToArrayInt(*ci.AssignToUser)
+				assignToUserArr := general.StringToArrayInt(ci.AssignToUser)
 				for _, v := range assignToUserArr {
 					dataUser, err := s.UserRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {

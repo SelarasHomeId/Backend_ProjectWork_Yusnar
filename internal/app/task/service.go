@@ -183,7 +183,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -366,7 +366,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 
 		if v.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(v.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -404,7 +404,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 
 		if v.Label != nil {
 			var label []map[string]interface{}
-			labelArr := general.StringToArrayInt(*v.Label)
+			labelArr := general.StringToArrayInt(v.Label)
 			for _, v := range labelArr {
 				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -472,7 +472,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 
 		var assignedMember []*model.UserEntityModel
 		if taskData.AssignToUser != nil {
-			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(taskData.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -533,7 +533,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
-			added, removed := general.DiffIntSlices(general.StringToArrayInt(*taskData.AssignToUser), payload.AssignToUser)
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(taskData.AssignToUser), payload.AssignToUser)
 			if added != nil {
 				var userAddedArr []string
 				for _, v := range added {
@@ -569,7 +569,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
-			added, removed := general.DiffIntSlices(general.StringToArrayInt(*taskData.Label), payload.Label)
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(taskData.Label), payload.Label)
 			if added != nil {
 				var labelAddedArr []string
 				for _, v := range added {
@@ -872,7 +872,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 		if data.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.StringToArrayInt(*data.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(data.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -910,7 +910,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 		if data.Label != nil {
 			var label []map[string]interface{}
-			labelArr := general.StringToArrayInt(*data.Label)
+			labelArr := general.StringToArrayInt(data.Label)
 			for _, v := range labelArr {
 				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -1010,7 +1010,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 
 				if ci.AssignToUser != nil {
 					var assignToUser []map[string]interface{}
-					assignToUserArr := general.StringToArrayInt(*ci.AssignToUser)
+					assignToUserArr := general.StringToArrayInt(ci.AssignToUser)
 					for _, v := range assignToUserArr {
 						dataUser, err := s.UserRepository.FindById(ctx, v)
 						if err != nil && err.Error() != "record not found" {
@@ -1149,7 +1149,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 
 		if v.AssignToUser != nil {
 			var assignToUser []map[string]interface{}
-			assignToUserArr := general.StringToArrayInt(*v.AssignToUser)
+			assignToUserArr := general.StringToArrayInt(v.AssignToUser)
 			for _, v := range assignToUserArr {
 				dataUser, err := s.UserRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
@@ -1187,7 +1187,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 
 		if v.Label != nil {
 			var label []map[string]interface{}
-			labelArr := general.StringToArrayInt(*v.Label)
+			labelArr := general.StringToArrayInt(v.Label)
 			for _, v := range labelArr {
 				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
 				if err != nil && err.Error() != "record not found" {
