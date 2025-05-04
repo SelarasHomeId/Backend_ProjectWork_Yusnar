@@ -536,6 +536,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			added, removed := general.DiffIntSlices(general.StringToArrayInt(taskData.AssignToUser), payload.AssignToUser)
 			if added != nil {
 				var userAddedArr []string
+				var userAddedIdArr []int
 				for _, v := range added {
 					dataUser, err := s.UserRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {
@@ -543,12 +544,26 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					}
 					if dataUser != nil {
 						userAddedArr = append(userAddedArr, dataUser.Name)
+						userAddedIdArr = append(userAddedIdArr, dataUser.ID)
+					}
+				}
+				for _, v := range userAddedIdArr {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("Anda telah ditambahkan ke tugas (%s) oleh %s", taskData.Title, userLogin.Name)
+					modelNotifikasi.Message = "Klik untuk melihat detail tugas"
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s ditambahkan ke tugas", general.FormatNamesFromArray(userAddedArr)))
 			}
 			if removed != nil {
 				var userRemovedArr []string
+				var userRemovedIdArr []int
 				for _, v := range removed {
 					dataUser, err := s.UserRepository.FindById(ctx, v)
 					if err != nil && err.Error() != "record not found" {
@@ -556,6 +571,19 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					}
 					if dataUser != nil {
 						userRemovedArr = append(userRemovedArr, dataUser.Name)
+						userRemovedIdArr = append(userRemovedIdArr, dataUser.ID)
+					}
+				}
+				for _, v := range userRemovedIdArr {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("Anda telah dikeluarkan dari tugas (%s) oleh %s", taskData.Title, userLogin.Name)
+					modelNotifikasi.Message = "Hubungi administrator anda"
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v
+					modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s dikeluarkan dari tugas", general.FormatNamesFromArray(userRemovedArr)))
