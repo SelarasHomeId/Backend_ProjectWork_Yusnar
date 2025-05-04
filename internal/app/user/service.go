@@ -1,6 +1,7 @@
 package contact
 
 import (
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -30,14 +31,16 @@ type Service interface {
 }
 
 type service struct {
-	UserRepository repository.User
+	UserRepository       repository.User
+	NotifikasiRepository repository.Notifikasi
 
 	DB *gorm.DB
 }
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		UserRepository: f.UserRepository,
+		UserRepository:       f.UserRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
 
 		DB: f.Db,
 	}
@@ -121,8 +124,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"is_delete":  v.IsDelete,
 			"is_locked":  v.IsLocked,
 			"login_from": v.LoginFrom,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 			"role": map[string]interface{}{
 				"id":   v.Role.ID,
 				"name": v.Role.Name,
@@ -153,8 +156,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.UserFindByIDRe
 			"is_delete":  data.IsDelete,
 			"is_locked":  data.IsLocked,
 			"login_from": data.LoginFrom,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 			"role": map[string]interface{}{
 				"id":   data.Role.ID,
 				"name": data.Role.Name,
@@ -310,6 +313,26 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+			userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			for _, v := range userAdmin {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Ada staf yang mengganti password di aplikasi %s", userData.LoginFrom)
+				modelNotifikasi.Message = fmt.Sprintf("%s - %s %s", userData.Name, userData.Role.Name, userData.Divisi.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -392,8 +415,8 @@ func (s *service) GetUserInfo(ctx *abstraction.Context) (map[string]interface{},
 			"is_delete":  data.IsDelete,
 			"is_locked":  data.IsLocked,
 			"login_from": data.LoginFrom,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 			"role": map[string]interface{}{
 				"id":   data.Role.ID,
 				"name": data.Role.Name,

@@ -541,3 +541,91 @@ func ValidateFileUpload(filename string) (bool, string) {
 func GenerateKeyWatchTask(userId, taskId int) string {
 	return fmt.Sprintf("user_%d_task_%d", userId, taskId)
 }
+
+func DiffIntSlices(oldSlice, newSlice []int) (added []int, removed []int) {
+	oldMap := make(map[int]bool)
+	newMap := make(map[int]bool)
+
+	for _, v := range oldSlice {
+		oldMap[v] = true
+	}
+
+	for _, v := range newSlice {
+		newMap[v] = true
+	}
+
+	for _, v := range newSlice {
+		if !oldMap[v] {
+			added = append(added, v)
+		}
+	}
+
+	for _, v := range oldSlice {
+		if !newMap[v] {
+			removed = append(removed, v)
+		}
+	}
+
+	return added, removed
+}
+
+func FormatNamesFromArray(names []string) string {
+	n := len(names)
+	if n == 0 {
+		return ""
+	} else if n == 1 {
+		return names[0]
+	} else if n == 2 {
+		return names[0] + " dan " + names[1]
+	}
+	return strings.Join(names[:n-1], ", ") + ", dan " + names[n-1]
+}
+
+type Color struct {
+	Name    string
+	R, G, B int
+}
+
+var colorList = []Color{
+	{"Hitam", 0, 0, 0},
+	{"Putih", 255, 255, 255},
+	{"Merah", 255, 0, 0},
+	{"Hijau", 0, 128, 0},
+	{"Biru", 0, 0, 255},
+	{"Kuning", 255, 255, 0},
+	{"Oranye", 255, 165, 0},
+	{"Abu-abu", 128, 128, 128},
+	{"Coklat", 139, 69, 19},
+	{"Hijau Tua", 31, 90, 51},
+}
+
+func GetColorNameFromCode(codeStr string) string {
+	code, err := strconv.ParseUint(codeStr, 10, 32)
+	if err != nil {
+		return "Kode tidak valid"
+	}
+	argb := uint32(code)
+
+	r := int((argb >> 16) & 0xFF)
+	g := int((argb >> 8) & 0xFF)
+	b := int(argb & 0xFF)
+
+	closestName := ""
+	minDistance := 1<<31 - 1 // max int
+	for _, c := range colorList {
+		dr := r - c.R
+		dg := g - c.G
+		db := b - c.B
+		dist := dr*dr + dg*dg + db*db
+		if dist < minDistance {
+			minDistance = dist
+			closestName = c.Name
+		}
+	}
+
+	return closestName
+}
+
+func FormatWithZWithoutChangingTime(t time.Time) string {
+	return t.Format("2006-01-02T15:04:05") + "Z"
+}

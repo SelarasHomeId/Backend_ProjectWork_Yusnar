@@ -35,7 +35,8 @@ type Service interface {
 }
 
 type service struct {
-	UserRepository repository.User
+	UserRepository       repository.User
+	NotifikasiRepository repository.Notifikasi
 
 	DB      *gorm.DB
 	DbRedis *redis.Client
@@ -43,7 +44,8 @@ type service struct {
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		UserRepository: f.UserRepository,
+		UserRepository:       f.UserRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
 
 		DB:      f.Db,
 		DbRedis: f.DbRedis,
@@ -124,8 +126,8 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			"id":         data.ID,
 			"name":       data.Name,
 			"email":      data.Email,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 			"role": map[string]interface{}{
 				"id":   data.Role.ID,
 				"name": data.Role.Name,
@@ -211,6 +213,26 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 		}
 		if data == nil {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "email not found")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != data.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = "Ada staf yang lupa password di portal login"
+				modelNotifikasi.Message = fmt.Sprintf("%s - %s %s", data.Name, data.Role.Name, data.Divisi.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		eksternalToken := new(modelToken.AuthEksternalToken)

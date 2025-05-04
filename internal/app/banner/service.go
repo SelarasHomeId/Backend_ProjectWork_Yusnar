@@ -71,8 +71,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"file_name":  v.FileName,
 			"is_delete":  v.IsDelete,
 			"is_popup":   v.IsPopup,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		})
 	}
 	return map[string]interface{}{
@@ -101,8 +101,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.BannerFindByID
 			"file_name":  data.FileName,
 			"is_delete":  data.IsDelete,
 			"is_popup":   data.IsPopup,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 		}
 
 	}
@@ -283,8 +283,8 @@ func (s *service) GetPopup(ctx *abstraction.Context) (map[string]interface{}, er
 			"file_name":  data.FileName,
 			"is_delete":  data.IsDelete,
 			"is_popup":   data.IsPopup,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 		}
 
 	}

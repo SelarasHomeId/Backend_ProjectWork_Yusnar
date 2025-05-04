@@ -84,8 +84,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"name":       v.Name,
 			"cover":      nil,
 			"is_delete":  v.IsDelete,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		}
 
 		if projectData.Cover != nil {
@@ -190,8 +190,8 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 				"comment":        countCommentData,
 				"checklist":      nil,
 				"is_delete":      v.IsDelete,
-				"created_at":     v.CreatedAt,
-				"updated_at":     v.UpdatedAt,
+				"created_at":     general.FormatWithZWithoutChangingTime(v.CreatedAt),
+				"updated_at":     general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 				"created_by": map[string]interface{}{
 					"id":    v.CreateBy.ID,
 					"name":  v.CreateBy.Name,

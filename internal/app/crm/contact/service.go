@@ -9,6 +9,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
@@ -24,14 +25,18 @@ type Service interface {
 }
 
 type service struct {
-	ContactRepository repository.Contact
+	ContactRepository    repository.Contact
+	NotifikasiRepository repository.Notifikasi
+	UserRepository       repository.User
 
 	DB *gorm.DB
 }
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		ContactRepository: f.ContactRepository,
+		ContactRepository:    f.ContactRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
+		UserRepository:       f.UserRepository,
 
 		DB: f.Db,
 	}
@@ -39,6 +44,11 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateRequest) (data map[string]interface{}, err error) {
 	if err = trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		modelContact := &model.ContactEntityModel{
 			Context: ctx,
 			ContactEntity: model.ContactEntity{
@@ -51,6 +61,20 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateReq
 		if err := s.ContactRepository.Create(ctx, modelContact).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		for _, v := range userAdmin {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = "Data calon pelangan baru telah masuk"
+			modelNotifikasi.Message = fmt.Sprintf("%s - %s", *payload.Name, *payload.Message)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = v.ID
+			modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -77,7 +101,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"phone":      v.Phone,
 			"email":      v.Email,
 			"message":    v.Message,
-			"created_at": v.CreatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
 		})
 	}
 	return map[string]interface{}{

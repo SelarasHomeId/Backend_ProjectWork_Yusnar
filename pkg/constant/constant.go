@@ -8,6 +8,8 @@ const (
 
 	USER_ID_SYSTEM = 1
 
+	BLANK_TASK_ID = 1
+
 	REDIS_REQUEST_IP_KEYS      = "reset-password:ip:%s"
 	REDIS_REQUEST_MAX_ATTEMPTS = 5
 	REDIS_REQUEST_IP_EXPIRE    = 240

@@ -8,6 +8,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
@@ -51,8 +52,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"is_read":    v.IsRead,
 			"user_id":    v.UserId,
 			"task_id":    v.TaskId,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		})
 	}
 	return map[string]interface{}{

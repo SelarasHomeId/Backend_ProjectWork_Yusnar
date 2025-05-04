@@ -9,6 +9,7 @@ import (
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
@@ -98,8 +99,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"id":         v.ID,
 			"name":       v.Name,
 			"is_delete":  v.IsDelete,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		})
 	}
 	return map[string]interface{}{
@@ -193,8 +194,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.DivisiFindByID
 			"id":         data.ID,
 			"name":       data.Name,
 			"is_delete":  data.IsDelete,
-			"created_at": data.CreatedAt,
-			"updated_at": data.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 		}
 	}
 	return map[string]interface{}{

@@ -46,11 +46,6 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -59,15 +54,27 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
 		}
 
-		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if userCreatedTask == nil {
-			userCreatedTask, err = s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
-			if err != nil && err.Error() != "record not found" {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
 			}
 		}
 
@@ -93,15 +100,47 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		modelNotifikasi := new(model.NotifikasiEntityModel)
-		modelNotifikasi.Context = ctx
-		modelNotifikasi.Title = fmt.Sprintf("Komentar baru telah ditambahkan oleh %s", userLogin.Name)
-		modelNotifikasi.Message = modelTaskComment.Comment
-		modelNotifikasi.IsRead = false
-		modelNotifikasi.UserId = userCreatedTask.ID
-		modelNotifikasi.TaskId = taskData.ID
-		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas (%s)", userLogin.Name, taskData.Title)
+				modelNotifikasi.Message = modelTaskComment.Comment
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas yang anda buat", userLogin.Name)
+			modelNotifikasi.Message = modelTaskComment.Comment
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = taskData.ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas (%s)", userLogin.Name, taskData.Title)
+				modelNotifikasi.Message = modelTaskComment.Comment
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		return nil
@@ -140,8 +179,8 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCommen
 			"comment":    v.Comment,
 			"is_delete":  v.IsDelete,
 			"is_history": v.IsHistory,
-			"created_at": v.CreatedAt,
-			"updated_at": v.UpdatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 			"created_by": map[string]interface{}{
 				"id":    v.CreateBy.ID,
 				"name":  v.CreateBy.Name,
@@ -171,6 +210,35 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task comment not found")
 		}
 
+		taskData, err := s.TaskRepository.FindById(ctx, taskCommentData.TaskId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
+		}
+
 		newTaskCommentData := new(model.TaskCommentEntityModel)
 		newTaskCommentData.Context = ctx
 		newTaskCommentData.ID = payload.ID
@@ -185,6 +253,49 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 		newTaskData.UpdatedAt = general.NowLocal()
 		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas (%s)", userLogin.Name, taskData.Title)
+				modelNotifikasi.Message = fmt.Sprintf("Komentar yang dihapus: %s", taskCommentData.Comment)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas yang anda buat", userLogin.Name)
+			modelNotifikasi.Message = fmt.Sprintf("Komentar yang dihapus: %s", taskCommentData.Comment)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = taskData.ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas (%s)", userLogin.Name, taskData.Title)
+				modelNotifikasi.Message = fmt.Sprintf("Komentar yang dihapus: %s", taskCommentData.Comment)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		return nil

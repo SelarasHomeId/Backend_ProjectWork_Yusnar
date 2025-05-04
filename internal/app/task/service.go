@@ -78,7 +78,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		userAdmin, err := s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -127,18 +127,26 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		modelNotifikasi := new(model.NotifikasiEntityModel)
-		modelNotifikasi.Context = ctx
-		modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s", userLogin.Name)
-		modelNotifikasi.Message = modelTask.Title
-		modelNotifikasi.IsRead = false
-		modelNotifikasi.UserId = userAdmin.ID
-		modelNotifikasi.TaskId = modelTask.ID
-		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s", userLogin.Name)
+				modelNotifikasi.Message = modelTask.Title
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = modelTask.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
-		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, fmt.Sprintf("Tugas dibuat oleh %s", userLogin.Name)).Error; err != nil {
+		msgHistory := fmt.Sprintf("Tugas dibuat oleh %s", userLogin.Name)
+		if ctx.Auth.RoleID == constant.ROLE_ID_ADMIN {
+			msgHistory = fmt.Sprintf("Tugas dibuat oleh admin (%s)", userLogin.Name)
+		}
+		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, msgHistory).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -155,11 +163,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		taskData, err := s.TaskRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -168,12 +171,41 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task not found")
 		}
 
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
+		}
+
 		boardData, err := s.BoardRepository.FindById(ctx, taskData.BoardId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if boardData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
+		}
+
+		workspaceData, err := s.WorkspaceRepository.FindById(ctx, boardData.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		newTaskData := new(model.TaskEntityModel)
@@ -190,6 +222,49 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 		newBoardData.TaskTotal = boardData.TaskTotal - 1
 		if err = s.BoardRepository.UpdateTaskTotalById(ctx, newBoardData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("(%s - %s)", boardData.Name, workspaceData.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
+			modelNotifikasi.Message = fmt.Sprintf("(%s - %s)", boardData.Name, workspaceData.Name)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("(%s - %s)", boardData.Name, workspaceData.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, fmt.Sprintf("Tugas dihapus oleh %s", userLogin.Name)).Error; err != nil {
@@ -273,8 +348,8 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			"comment":        countCommentData,
 			"checklist":      nil,
 			"is_delete":      v.IsDelete,
-			"created_at":     v.CreatedAt,
-			"updated_at":     v.UpdatedAt,
+			"created_at":     general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at":     general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 			"created_by": map[string]interface{}{
 				"id":    v.CreateBy.ID,
 				"name":  v.CreateBy.Name,
@@ -375,42 +450,69 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 		changesTaskTotal.OldBoard = &taskData.BoardId
 
+		boardData, err := s.BoardRepository.FindById(ctx, taskData.BoardId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		workspaceData, err := s.WorkspaceRepository.FindById(ctx, boardData.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		userCreatedTask, err := s.UserRepository.FindById(ctx, taskData.CreatedBy)
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
-		titleNotifWatch := fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
 
-		if userCreatedTask == nil {
-			userCreatedTask, err = s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
-			if err != nil && err.Error() != "record not found" {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
 			}
-			titleNotifWatch = fmt.Sprintf("Tugas yang dibuat staf anda telah dilihat oleh %s", userLogin.Name)
 		}
 
+		var messageNotif []string
 		newTaskData := new(model.TaskEntityModel)
 		newTaskData.Context = ctx
 		newTaskData.ID = payload.ID
 		if payload.BoardId != nil {
-			boardData, err := s.BoardRepository.FindById(ctx, *payload.BoardId)
+			newBoardData, err := s.BoardRepository.FindById(ctx, *payload.BoardId)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-			if boardData == nil {
+			if newBoardData == nil {
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
 			}
-			changesTaskTotal.NewBoard = &boardData.ID
+			changesTaskTotal.NewBoard = &newBoardData.ID
+
+			newWorkspaceData, err := s.WorkspaceRepository.FindById(ctx, newBoardData.WorkspaceId)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 
 			newTaskData.BoardId = *payload.BoardId
+			if boardData.ID != newBoardData.ID {
+				messageNotif = append(messageNotif, fmt.Sprintf("Tugas dipindahkan ke %s - %s", newBoardData.Name, newWorkspaceData.Name))
+			}
 		}
 		if payload.Title != nil {
 			newTaskData.Title = *payload.Title
+			if taskData.Title != newTaskData.Title {
+				messageNotif = append(messageNotif, fmt.Sprintf("Tugas berganti nama menjadi (%s)", newTaskData.Title))
+			}
 		}
 		if payload.Description != nil {
 			newTaskData.Description = payload.Description
@@ -419,29 +521,91 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
+			if taskData.Description != newTaskData.Description {
+				messageNotif = append(messageNotif, fmt.Sprintf("Deskripsi tugas diperbarui: %s", *payload.Description))
+			}
 		}
 		if payload.AssignToUser != nil {
 			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
 			newTaskData.AssignToUser = &strAssignToUser
-			if strAssignToUser == "0" {
+			if strAssignToUser == "" || strAssignToUser == "0" {
 				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "assign_to_user").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+			}
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(*taskData.AssignToUser), payload.AssignToUser)
+			if added != nil {
+				var userAddedArr []string
+				for _, v := range added {
+					dataUser, err := s.UserRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataUser != nil {
+						userAddedArr = append(userAddedArr, dataUser.Name)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("User %s ditambahkan ke tugas", general.FormatNamesFromArray(userAddedArr)))
+			}
+			if removed != nil {
+				var userRemovedArr []string
+				for _, v := range removed {
+					dataUser, err := s.UserRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataUser != nil {
+						userRemovedArr = append(userRemovedArr, dataUser.Name)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("User %s dikeluarkan dari tugas", general.FormatNamesFromArray(userRemovedArr)))
 			}
 		}
 		if payload.Label != nil {
 			strLabel := general.ArrayIntToString(payload.Label)
 			newTaskData.Label = &strLabel
-			if strLabel == "0" {
+			if strLabel == "" || strLabel == "0" {
 				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "label").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+			}
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(*taskData.Label), payload.Label)
+			if added != nil {
+				var labelAddedArr []string
+				for _, v := range added {
+					dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataLabel != nil {
+						labelAddedArr = append(labelAddedArr, dataLabel.Title)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("Label %s ditambahkan ke tugas", general.FormatNamesFromArray(labelAddedArr)))
+			}
+			if removed != nil {
+				var labelRemovedArr []string
+				for _, v := range removed {
+					dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataLabel != nil {
+						labelRemovedArr = append(labelRemovedArr, dataLabel.Title)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("Label %s dihapus dari tugas", general.FormatNamesFromArray(labelRemovedArr)))
 			}
 		}
 		if payload.IsCompleted != nil {
 			newTaskData.IsCompleted = *payload.IsCompleted
 			if err = s.TaskRepository.UpdateCompleted(ctx, newTaskData).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			if *payload.IsCompleted {
+				messageNotif = append(messageNotif, "Tugas ditandai sebagai selesai")
+			} else {
+				messageNotif = append(messageNotif, "Tugas ditandai sebagai belum selesai")
 			}
 		}
 		if payload.DueDate != nil {
@@ -451,10 +615,14 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
 				}
 				newTaskData.DueDate = &parsedDueDate
+				if taskData.DueDate != newTaskData.DueDate {
+					messageNotif = append(messageNotif, fmt.Sprintf("Tenggat waktu telah ditambahkan: %s", parsedDueDate))
+				}
 			} else {
 				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "due_date").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+				messageNotif = append(messageNotif, "Tenggat waktu telah dihapus dari tugas")
 			}
 		}
 		if payload.Cover != nil {
@@ -486,6 +654,9 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
+			if taskData.Cover != newTaskData.Cover {
+				messageNotif = append(messageNotif, "Cover telah ditambahkan")
+			}
 		} else {
 			if payload.DeleteCover != nil && *payload.DeleteCover {
 				errDel := gdrive.DeleteFile(s.sDrive, *taskData.Cover)
@@ -498,6 +669,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 				if err = s.TaskRepository.UpdateToNull(ctx, newTaskData, "cover_name").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+				messageNotif = append(messageNotif, "Cover telah dihapus")
 			}
 		}
 		if payload.Watch != nil {
@@ -506,10 +678,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			if *payload.Watch {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
-				modelNotifikasi.Title = titleNotifWatch
-				modelNotifikasi.Message = fmt.Sprintf("Klik untuk melihat detail tugas: %s", taskData.Title)
+				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
+				modelNotifikasi.Message = "Klik untuk melihat detail tugas"
 				modelNotifikasi.IsRead = false
-				modelNotifikasi.UserId = userCreatedTask.ID
+				modelNotifikasi.UserId = taskData.CreateBy.ID
 				modelNotifikasi.TaskId = taskData.ID
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -547,6 +719,61 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			newBoardDataOld.ID = boardDataOld.ID
 			newBoardDataOld.TaskTotal = boardDataOld.TaskTotal - 1
 			if err = s.BoardRepository.UpdateTaskTotalById(ctx, newBoardDataOld).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate tugas (%s) di %s", userLogin.Name, taskData.Title, workspaceData.Name)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			for _, v := range messageNotif {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat (%s) telah diupdate oleh %s", taskData.Title, userLogin.Name)
+				modelNotifikasi.Message = v
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = taskData.CreateBy.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate tugas (%s) di %s", userLogin.Name, taskData.Title, workspaceData.Name)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
+		}
+
+		for _, v := range messageNotif {
+			if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, v).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 		}
@@ -622,8 +849,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			"comment":        nil,
 			"checklist":      nil,
 			"is_delete":      data.IsDelete,
-			"created_at":     data.CreatedAt,
-			"updated_at":     data.UpdatedAt,
+			"created_at":     general.FormatWithZWithoutChangingTime(data.CreatedAt),
+			"updated_at":     general.FormatWithZWithoutChangingTime(*data.UpdatedAt),
 			"created_by": map[string]interface{}{
 				"id":    data.CreateBy.ID,
 				"name":  data.CreateBy.Name,
@@ -720,8 +947,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				},
 				"file_name":  v.FileName,
 				"is_delete":  v.IsDelete,
-				"created_at": v.CreatedAt,
-				"updated_at": v.UpdatedAt,
+				"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+				"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 			})
 		}
 		res["file"] = map[string]interface{}{
@@ -737,8 +964,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"comment":    v.Comment,
 				"is_delete":  v.IsDelete,
 				"is_history": v.IsHistory,
-				"created_at": v.CreatedAt,
-				"updated_at": v.UpdatedAt,
+				"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
+				"updated_at": general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 				"created_by": map[string]interface{}{
 					"id":    v.CreateBy.ID,
 					"name":  v.CreateBy.Name,
@@ -777,8 +1004,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 					"is_completed":   ci.IsCompleted,
 					"sort_number":    ci.SortNumber,
 					"is_delete":      ci.IsDelete,
-					"created_at":     ci.CreatedAt,
-					"updated_at":     ci.UpdatedAt,
+					"created_at":     general.FormatWithZWithoutChangingTime(ci.CreatedAt),
+					"updated_at":     general.FormatWithZWithoutChangingTime(*ci.UpdatedAt),
 				}
 
 				if ci.AssignToUser != nil {
@@ -819,8 +1046,8 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"title":            v.Title,
 				"check_persentase": strconv.Itoa(checkPersentase) + "%",
 				"is_delete":        v.IsDelete,
-				"created_at":       v.CreatedAt,
-				"updated_at":       v.UpdatedAt,
+				"created_at":       general.FormatWithZWithoutChangingTime(v.CreatedAt),
+				"updated_at":       general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 				"item": map[string]interface{}{
 					"count": len(dataChecklistItem),
 					"data":  dataChecklistItemArr,
@@ -904,8 +1131,8 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"comment":        len(commentData),
 			"checklist":      nil,
 			"is_delete":      v.IsDelete,
-			"created_at":     v.CreatedAt,
-			"updated_at":     v.UpdatedAt,
+			"created_at":     general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at":     general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 			"created_by": map[string]interface{}{
 				"id":    v.CreateBy.ID,
 				"name":  v.CreateBy.Name,

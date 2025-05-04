@@ -58,17 +58,41 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCreateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, payload.TaskChecklistId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if taskChecklistData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task checklist not found")
+		}
+
+		taskData, err := s.TaskRepository.FindById(ctx, taskChecklistData.TaskId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
 		}
 
 		dataItemInChecklist, err := s.ChecklistItemRepository.FindByTaskChecklistId(ctx, payload.TaskChecklistId)
@@ -91,21 +115,51 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 				SortNumber:      sortNum,
 			},
 		}
-
-		if payload.AssignToUser != nil {
-			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
-			modelChecklistItem.AssignToUser = &strAssignToUser
-		}
-		if payload.DueDate != nil {
-			parsedDueDate, err := general.Parse("2006-01-02", *payload.DueDate)
-			if err != nil {
-				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
-			}
-			modelChecklistItem.DueDate = &parsedDueDate
-		}
-
 		if err := s.ChecklistItemRepository.Create(ctx, modelChecklistItem).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan item pada checklist (%s) di tugas (%s)", userLogin.Name, taskChecklistData.Title, taskData.Title)
+				modelNotifikasi.Message = modelChecklistItem.Title
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("%s menambahkan item pada checklist (%s) di tugas yang anda buat", userLogin.Name, taskChecklistData.Title)
+			modelNotifikasi.Message = modelChecklistItem.Title
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = taskData.ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan item pada checklist (%s) di tugas (%s)", userLogin.Name, taskChecklistData.Title, taskData.Title)
+				modelNotifikasi.Message = modelChecklistItem.Title
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
 		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) untuk Checklist (%s) telah ditambahkan oleh %s", payload.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
@@ -150,8 +204,8 @@ func (s *service) FindByTaskChecklistId(ctx *abstraction.Context, payload *dto.C
 			"is_completed":   v.IsCompleted,
 			"sort_number":    v.SortNumber,
 			"is_delete":      v.IsDelete,
-			"created_at":     v.CreatedAt,
-			"updated_at":     v.UpdatedAt,
+			"created_at":     general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at":     general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		}
 
 		if v.AssignToUser != nil {
@@ -197,36 +251,127 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "checklist item not found")
 		}
 
+		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, checklistItemData.TaskChecklistId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		taskData, err := s.TaskRepository.FindById(ctx, taskChecklistData.TaskId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
+		}
+
+		var assignedMemberChecklist []*model.UserEntityModel
+		if checklistItemData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMemberChecklist = append(assignedMemberChecklist, dataUser)
+				}
+			}
+		}
+
+		var messageNotif []string
 		newchecklistItemData := new(model.ChecklistItemEntityModel)
 		newchecklistItemData.Context = ctx
 		newchecklistItemData.ID = payload.ID
 		if payload.TaskChecklistId != nil {
-			taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, *payload.TaskChecklistId)
+			newTaskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, *payload.TaskChecklistId)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-			if taskChecklistData == nil {
+			if newTaskChecklistData == nil {
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "task checklist not found")
 			}
+			newTaskData, err := s.TaskRepository.FindById(ctx, newTaskChecklistData.TaskId)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 
-			newchecklistItemData.TaskChecklistId = *payload.TaskChecklistId
+			newchecklistItemData.TaskChecklistId = newTaskChecklistData.ID
+			if taskChecklistData.ID != newTaskChecklistData.ID {
+				messageNotif = append(messageNotif, fmt.Sprintf("Item (%s) dipindahkan ke %s - %s", checklistItemData.Title, newTaskChecklistData.Title, newTaskData.Title))
+			}
 		}
 		if payload.Title != nil {
 			newchecklistItemData.Title = *payload.Title
+			if checklistItemData.Title != newchecklistItemData.Title {
+				messageNotif = append(messageNotif, fmt.Sprintf("Item (%s) berganti nama menjadi (%s)", checklistItemData.Title, newchecklistItemData.Title))
+			}
 		}
 		if payload.AssignToUser != nil {
 			strAssignToUser := general.ArrayIntToString(payload.AssignToUser)
 			newchecklistItemData.AssignToUser = &strAssignToUser
-			if strAssignToUser == "0" {
+			if strAssignToUser == "" || strAssignToUser == "0" {
 				if err = s.ChecklistItemRepository.UpdateToNull(ctx, newchecklistItemData, "assign_to_user").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+			}
+			added, removed := general.DiffIntSlices(general.StringToArrayInt(*checklistItemData.AssignToUser), payload.AssignToUser)
+			if added != nil {
+				var userAddedArr []string
+				for _, v := range added {
+					dataUser, err := s.UserRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataUser != nil {
+						userAddedArr = append(userAddedArr, dataUser.Name)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("User %s ditambahkan ke item (%s)", general.FormatNamesFromArray(userAddedArr), checklistItemData.Title))
+			}
+			if removed != nil {
+				var userRemovedArr []string
+				for _, v := range removed {
+					dataUser, err := s.UserRepository.FindById(ctx, v)
+					if err != nil && err.Error() != "record not found" {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+					if dataUser != nil {
+						userRemovedArr = append(userRemovedArr, dataUser.Name)
+					}
+				}
+				messageNotif = append(messageNotif, fmt.Sprintf("User %s dikeluarkan dari item (%s)", general.FormatNamesFromArray(userRemovedArr), checklistItemData.Title))
 			}
 		}
 		if payload.IsCompleted != nil {
 			newchecklistItemData.IsCompleted = *payload.IsCompleted
 			if err = s.ChecklistItemRepository.UpdateCompleted(ctx, newchecklistItemData).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			if *payload.IsCompleted {
+				messageNotif = append(messageNotif, fmt.Sprintf("Item (%s) ditandai sebagai selesai", checklistItemData.Title))
+			} else {
+				messageNotif = append(messageNotif, fmt.Sprintf("Item (%s) ditandai sebagai belum selesai", checklistItemData.Title))
 			}
 		}
 		if payload.DueDate != nil {
@@ -236,10 +381,14 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "err parse due date:"+err.Error())
 				}
 				newchecklistItemData.DueDate = &parsedDueDate
+				if checklistItemData.DueDate != newchecklistItemData.DueDate {
+					messageNotif = append(messageNotif, fmt.Sprintf("Tenggat waktu untuk item (%s) telah ditambahkan: %s", checklistItemData.Title, parsedDueDate))
+				}
 			} else {
 				if err = s.ChecklistItemRepository.UpdateToNull(ctx, newchecklistItemData, "due_date").Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+				messageNotif = append(messageNotif, fmt.Sprintf("Tenggat waktu untuk item (%s) telah dihapus dari tugas", checklistItemData.Title))
 			}
 		}
 		if payload.SortNumber != nil {
@@ -257,6 +406,95 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		newTaskData := new(model.TaskEntityModel)
+		newTaskData.Context = ctx
+		newTaskData.ID = taskChecklistData.TaskId
+		newTaskData.UpdatedAt = general.NowLocal()
+		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate item (%s) pada checklist (%s) di %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title, taskData.Title)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			for _, v := range messageNotif {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat (%s) terdapat item (%s) pada checklist (%s) yang telah diupdate oleh %s", taskData.Title, checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+				modelNotifikasi.Message = v
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = taskData.CreateBy.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate item (%s) pada checklist (%s) di %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title, taskData.Title)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
+		}
+
+		for _, v := range assignedMemberChecklist {
+			alreadyNotif := false
+			for _, j := range assignedMember {
+				if v.ID == j.ID {
+					alreadyNotif = true
+				}
+			}
+			if alreadyNotif {
+				continue
+			}
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate item (%s) pada checklist (%s) di %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title, taskData.Title)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
+		}
+
+		for _, v := range messageNotif {
+			if err := s.TaskCommentRepository.CreateHistory(ctx, taskData.ID, v).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -268,11 +506,6 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -284,6 +517,49 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, checklistItemData.TaskChecklistId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		taskData, err := s.TaskRepository.FindById(ctx, taskChecklistData.TaskId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
+		}
+
+		var assignedMemberChecklist []*model.UserEntityModel
+		if checklistItemData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMemberChecklist = append(assignedMemberChecklist, dataUser)
+				}
+			}
 		}
 
 		newChecklistItemData := new(model.ChecklistItemEntityModel)
@@ -302,7 +578,82 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) untuk Checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
+		newTaskData := new(model.TaskEntityModel)
+		newTaskData.Context = ctx
+		newTaskData.ID = taskChecklistData.TaskId
+		newTaskData.UpdatedAt = general.NowLocal()
+		if err = s.TaskRepository.Update(ctx, newTaskData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Item (%s) pada checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("Pada tugas yang anda buat terdapat item (%s) di checklist (%s) yang telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+			modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = taskData.ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Item (%s) pada checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		for _, v := range assignedMemberChecklist {
+			alreadyNotif := false
+			for _, j := range assignedMember {
+				if v.ID == j.ID {
+					alreadyNotif = true
+				}
+			}
+			if alreadyNotif {
+				continue
+			}
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Item (%s) pada checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) pada checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -317,16 +668,6 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 
 func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.ChecklistItemConvertToTaskRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
-		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
-		userAdmin, err := s.UserRepository.FindByRoleId(ctx, constant.ROLE_ID_ADMIN)
-		if err != nil && err.Error() != "record not found" {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
-
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -348,6 +689,44 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 		boardData, err := s.BoardRepository.FindById(ctx, taskData.BoardId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var assignedMember []*model.UserEntityModel
+		if taskData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*taskData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMember = append(assignedMember, dataUser)
+				}
+			}
+		}
+
+		var assignedMemberChecklist []*model.UserEntityModel
+		if checklistItemData.AssignToUser != nil {
+			assignToUserArr := general.StringToArrayInt(*checklistItemData.AssignToUser)
+			for _, v := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignedMemberChecklist = append(assignedMemberChecklist, dataUser)
+				}
+			}
 		}
 
 		dataTaskInBoard, err := s.TaskRepository.FindByBoardId(ctx, taskData.BoardId)
@@ -393,18 +772,74 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		modelNotifikasi := new(model.NotifikasiEntityModel)
-		modelNotifikasi.Context = ctx
-		modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s dari item checklist %s", userLogin.Name, checklistItemData.Title)
-		modelNotifikasi.Message = modelTask.Title
-		modelNotifikasi.IsRead = false
-		modelNotifikasi.UserId = userAdmin.ID
-		modelNotifikasi.TaskId = modelTask.ID
-		if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s dari item (%s) di checklist %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = modelTask.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
 		}
 
-		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, fmt.Sprintf("Tugas dikonversi dari item (%s) pada checklist (%s) oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = fmt.Sprintf("Pada tugas yang anda buat terdapat item (%s) di checklist (%s) yang telah dikonversi ke tugas oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
+			modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = taskData.CreateBy.ID
+			modelNotifikasi.TaskId = modelTask.ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		for _, v := range assignedMember {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s dari item (%s) di checklist %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		for _, v := range assignedMemberChecklist {
+			alreadyNotif := false
+			for _, j := range assignedMember {
+				if v.ID == j.ID {
+					alreadyNotif = true
+				}
+			}
+			if alreadyNotif {
+				continue
+			}
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s dari item (%s) di checklist %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title)
+				modelNotifikasi.Message = fmt.Sprintf("Tugas: %s", taskData.Title)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = taskData.ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
+		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, fmt.Sprintf("Tugas dikonversi dari item (%s) di checklist (%s) pada tugas (%s) oleh %s", checklistItemData.Title, taskChecklistData.Title, taskData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
@@ -424,7 +859,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) dari Checklist (%s) telah di konversi ke task oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
+		if err := s.TaskCommentRepository.CreateHistory(ctx, taskChecklistData.TaskId, fmt.Sprintf("Item (%s) dari checklist (%s) telah dikonversi menjadi tugas oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 

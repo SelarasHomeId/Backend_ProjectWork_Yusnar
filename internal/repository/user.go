@@ -20,6 +20,7 @@ type User interface {
 	UpdateLoginFrom(ctx *abstraction.Context, data *model.UserEntityModel) *gorm.DB
 	FindByDivisiId(ctx *abstraction.Context, id *int) (*model.UserEntityModel, error)
 	FindByRoleId(ctx *abstraction.Context, role_id int) (*model.UserEntityModel, error)
+	FindByRoleIdArr(ctx *abstraction.Context, role_id int, no_paging bool) (data []*model.UserEntityModel, err error)
 }
 
 type user struct {
@@ -143,4 +144,19 @@ func (r *user) FindByRoleId(ctx *abstraction.Context, role_id int) (*model.UserE
 		return nil, err
 	}
 	return &data, nil
+}
+
+func (r *user) FindByRoleIdArr(ctx *abstraction.Context, role_id int, no_paging bool) (data []*model.UserEntityModel, err error) {
+	limit, offset := general.ProcessLimitOffset(ctx, no_paging)
+	order := general.ProcessOrder(ctx)
+	err = r.CheckTrx(ctx).
+		Where("role_id = ? AND is_delete = ?", role_id, false).
+		Order(order).
+		Limit(limit).
+		Offset(offset).
+		Preload("Role").
+		Preload("Divisi").
+		Find(&data).
+		Error
+	return
 }

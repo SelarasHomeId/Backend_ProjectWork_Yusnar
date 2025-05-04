@@ -1,10 +1,8 @@
 package dto
 
 type ChecklistItemCreateRequest struct {
-	TaskChecklistId int     `json:"task_checklist_id" form:"task_checklist_id"`
-	Title           string  `json:"title" form:"title"`
-	AssignToUser    []int   `json:"assign_to_user" form:"assign_to_user"`
-	DueDate         *string `json:"due_date" form:"due_date"`
+	TaskChecklistId int    `json:"task_checklist_id" form:"task_checklist_id"`
+	Title           string `json:"title" form:"title"`
 }
 
 type ChecklistItemFindByChecklistIDRequest struct {

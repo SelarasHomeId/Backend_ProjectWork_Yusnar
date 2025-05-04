@@ -2,12 +2,15 @@ package board
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
@@ -22,18 +25,22 @@ type Service interface {
 }
 
 type service struct {
-	BoardRepository     repository.Board
-	WorkspaceRepository repository.Workspace
-	TaskRepository      repository.Task
+	BoardRepository      repository.Board
+	WorkspaceRepository  repository.Workspace
+	TaskRepository       repository.Task
+	UserRepository       repository.User
+	NotifikasiRepository repository.Notifikasi
 
 	DB *gorm.DB
 }
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		BoardRepository:     f.BoardRepository,
-		WorkspaceRepository: f.WorkspaceRepository,
-		TaskRepository:      f.TaskRepository,
+		BoardRepository:      f.BoardRepository,
+		WorkspaceRepository:  f.WorkspaceRepository,
+		TaskRepository:       f.TaskRepository,
+		UserRepository:       f.UserRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
 
 		DB: f.Db,
 	}
@@ -42,6 +49,16 @@ func NewService(f *factory.Factory) Service {
 func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateRequest) (map[string]interface{}, error) {
 	boardData := new(model.BoardEntityModel)
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		workspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -74,6 +91,21 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s telah membuat board baru di %s", userLogin.Name, workspaceData.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Board: %s", *payload.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
 		boardData = modelBoard
 		return nil
 	}); err != nil {
@@ -91,12 +123,27 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		boardData, err := s.BoardRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		if boardData == nil {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
+		}
+
+		workspaceData, err := s.WorkspaceRepository.FindById(ctx, boardData.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
 		newBoardData := new(model.BoardEntityModel)
@@ -124,6 +171,21 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 			}
 		}
 
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				modelNotifikasi := new(model.NotifikasiEntityModel)
+				modelNotifikasi.Context = ctx
+				modelNotifikasi.Title = fmt.Sprintf("%s telah menghapus board dari %s", userLogin.Name, workspaceData.Name)
+				modelNotifikasi.Message = fmt.Sprintf("Board: %s", boardData.Name)
+				modelNotifikasi.IsRead = false
+				modelNotifikasi.UserId = v.ID
+				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -135,6 +197,16 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		boardData, err := s.BoardRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -143,22 +215,31 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "board not found")
 		}
 
+		workspaceData, err := s.WorkspaceRepository.FindById(ctx, boardData.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		var messageNotif []string
 		newBoardData := new(model.BoardEntityModel)
 		newBoardData.Context = ctx
 		newBoardData.ID = payload.ID
 		if payload.Name != nil {
 			newBoardData.Name = *payload.Name
+			if boardData.Name != newBoardData.Name {
+				messageNotif = append(messageNotif, fmt.Sprintf("Board berganti nama menjadi %s", newBoardData.Name))
+			}
 		}
 		if payload.WorkspaceId != nil {
-			workspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
+			newWorkspaceData, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-			if workspaceData == nil {
+			if newWorkspaceData == nil {
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "workspace not found")
 			}
 
-			dataBoardInWorkspace, err := s.BoardRepository.FindByWorkspaceId(ctx, workspaceData.ID)
+			dataBoardInWorkspace, err := s.BoardRepository.FindByWorkspaceId(ctx, newWorkspaceData.ID)
 			if err != nil && err.Error() != "record not found" {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -168,8 +249,11 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 				sortNum = dataBoardInWorkspace.SortNumber + 1
 			}
 
-			newBoardData.WorkspaceId = workspaceData.ID
+			newBoardData.WorkspaceId = newWorkspaceData.ID
 			newBoardData.SortNumber = sortNum
+			if workspaceData.ID != newWorkspaceData.ID {
+				messageNotif = append(messageNotif, fmt.Sprintf("Board dipindahkan ke %s", workspaceData.Name))
+			}
 		}
 		if payload.SortNumber != nil {
 			newBoardData.SortNumber = *payload.SortNumber
@@ -177,6 +261,23 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 
 		if err = s.BoardRepository.Update(ctx, newBoardData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range userAdmin {
+			if v.ID != ctx.Auth.ID {
+				for _, d := range messageNotif {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("%s telah mengupdate board %s di %s", userLogin.Name, boardData.Name, workspaceData.Name)
+					modelNotifikasi.Message = d
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = v.ID
+					modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
+				}
+			}
 		}
 
 		return nil
@@ -216,8 +317,8 @@ func (s *service) FindByWorkspaceId(ctx *abstraction.Context, payload *dto.Board
 			"task_total":   v.TaskTotal,
 			"sort_number":  v.SortNumber,
 			"is_delete":    v.IsDelete,
-			"created_at":   v.CreatedAt,
-			"updated_at":   v.UpdatedAt,
+			"created_at":   general.FormatWithZWithoutChangingTime(v.CreatedAt),
+			"updated_at":   general.FormatWithZWithoutChangingTime(*v.UpdatedAt),
 		})
 	}
 

@@ -9,6 +9,7 @@ import (
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/model"
 	"selarashomeid/internal/repository"
+	"selarashomeid/pkg/constant"
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
@@ -24,14 +25,18 @@ type Service interface {
 }
 
 type service struct {
-	AffiliateRepository repository.Affiliate
+	AffiliateRepository  repository.Affiliate
+	NotifikasiRepository repository.Notifikasi
+	UserRepository       repository.User
 
 	DB *gorm.DB
 }
 
 func NewService(f *factory.Factory) Service {
 	return &service{
-		AffiliateRepository: f.AffiliateRepository,
+		AffiliateRepository:  f.AffiliateRepository,
+		NotifikasiRepository: f.NotifikasiRepository,
+		UserRepository:       f.UserRepository,
 
 		DB: f.Db,
 	}
@@ -39,6 +44,11 @@ func NewService(f *factory.Factory) Service {
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateRequest) (data map[string]interface{}, err error) {
 	if err = trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		modelAffiliate := &model.AffiliateEntityModel{
 			Context: ctx,
 			AffiliateEntity: model.AffiliateEntity{
@@ -53,6 +63,20 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateR
 		if err := s.AffiliateRepository.Create(ctx, modelAffiliate).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		for _, v := range userAdmin {
+			modelNotifikasi := new(model.NotifikasiEntityModel)
+			modelNotifikasi.Context = ctx
+			modelNotifikasi.Title = "Data affiliator baru telah masuk"
+			modelNotifikasi.Message = fmt.Sprintf("%s - %s", *payload.Name, *payload.Info)
+			modelNotifikasi.IsRead = false
+			modelNotifikasi.UserId = v.ID
+			modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -81,7 +105,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"instagram":  v.Instagram,
 			"tiktok":     v.Tiktok,
 			"info":       v.Info,
-			"created_at": v.CreatedAt,
+			"created_at": general.FormatWithZWithoutChangingTime(v.CreatedAt),
 		})
 	}
 	return map[string]interface{}{
