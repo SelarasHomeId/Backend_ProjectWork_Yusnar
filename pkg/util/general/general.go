@@ -638,15 +638,10 @@ func ProcessLoginFrom(input, currentLoginFrom string) string {
 	if currentLoginFrom == "" {
 		return input
 	}
-	if !strings.Contains(currentLoginFrom, input) {
-		if currentLoginFrom == "web" || currentLoginFrom == "mobile" {
-			if input == "web" {
-				return "web & mobile"
-			}
-			return "mobile & web"
-		}
+	if strings.Contains(currentLoginFrom, input) {
+		return currentLoginFrom
 	}
-	return currentLoginFrom
+	return currentLoginFrom + " & " + input
 }
 
 func ProcessLogoutFrom(loginFrom, logoutFrom string) string {
