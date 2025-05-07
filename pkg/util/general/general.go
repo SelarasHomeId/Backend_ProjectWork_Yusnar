@@ -633,3 +633,38 @@ func GetColorNameFromCode(codeStr string) string {
 func FormatWithZWithoutChangingTime(t time.Time) string {
 	return t.Format("2006-01-02T15:04:05") + "Z"
 }
+
+func ProcessLoginFrom(input, currentLoginFrom string) string {
+	if currentLoginFrom == "" {
+		return input
+	}
+	if !strings.Contains(currentLoginFrom, input) {
+		if currentLoginFrom == "web" || currentLoginFrom == "mobile" {
+			if input == "web" {
+				return "web & mobile"
+			}
+			return "mobile & web"
+		}
+	}
+	return currentLoginFrom
+}
+
+func ProcessLogoutFrom(loginFrom, logoutFrom string) string {
+	if logoutFrom == "web" {
+		loginFrom = strings.ReplaceAll(loginFrom, "web", "")
+	}
+	if logoutFrom == "mobile" {
+		loginFrom = strings.ReplaceAll(loginFrom, "mobile", "")
+	}
+	loginFrom = strings.TrimSpace(loginFrom)
+	if loginFrom == "" {
+		return ""
+	}
+	loginFrom = strings.ReplaceAll(loginFrom, " &", "")
+	loginFrom = strings.ReplaceAll(loginFrom, "& ", "")
+	loginFrom = strings.TrimSpace(loginFrom)
+	if loginFrom == "" {
+		return ""
+	}
+	return loginFrom
+}

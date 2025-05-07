@@ -34,6 +34,9 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	// docs
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
+	// static
+	e.Static("/images", "assets/images")
+
 	// routes
 	test.NewHandler(f).Route(e.Group("/test"))
 	banner.NewHandler(f).Route(e.Group("/banner"))

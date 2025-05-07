@@ -12,10 +12,11 @@ type Context struct {
 }
 
 type AuthContext struct {
-	ID       int
-	RoleID   int
-	DivisiID int
-	Email    string
+	ID        int
+	RoleID    int
+	DivisiID  int
+	Email     string
+	LoginFrom string
 }
 
 type TrxContext struct {

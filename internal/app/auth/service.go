@@ -28,7 +28,7 @@ import (
 
 type Service interface {
 	Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest) (map[string]interface{}, error)
-	Logout(ctx *abstraction.Context) (map[string]interface{}, error)
+	Logout(ctx *abstraction.Context, payload *dto.AuthLogoutRequest) (map[string]interface{}, error)
 	RefreshToken(ctx *abstraction.Context) (map[string]interface{}, error)
 	SendEmailForgotPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailForgotPasswordRequest) (map[string]interface{}, error)
 	ValidationResetPassword(ctx *abstraction.Context, payload *dto.AuthValidationResetPasswordRequest) (string, error)
@@ -93,13 +93,15 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
+		encodedLoginFrom := encoding.Encode(data.LoginFrom)
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:       encryptedUserID,
-			RoleID:   encryptedUserRoleID,
-			DivisiID: encryptedUserDivisiID,
-			Email:    encodedEmail,
-			Exp:      time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:        encryptedUserID,
+			RoleID:    encryptedUserRoleID,
+			DivisiID:  encryptedUserDivisiID,
+			Email:     encodedEmail,
+			LoginFrom: encodedLoginFrom,
+			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()
@@ -110,7 +112,7 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 		userData := new(model.UserEntityModel)
 		userData.Context = ctx
 		userData.ID = data.ID
-		userData.LoginFrom = payload.LoginFrom
+		userData.LoginFrom = general.ProcessLoginFrom(payload.LoginFrom, data.LoginFrom)
 		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -140,12 +142,12 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 	}, nil
 }
 
-func (s *service) Logout(ctx *abstraction.Context) (map[string]interface{}, error) {
+func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userData := new(model.UserEntityModel)
 		userData.Context = ctx
 		userData.ID = ctx.Auth.ID
-		userData.LoginFrom = ""
+		userData.LoginFrom = general.ProcessLogoutFrom(ctx.Auth.LoginFrom, payload.LogoutFrom)
 		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -181,13 +183,15 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
+		encodedLoginFrom := encoding.Encode(data.LoginFrom)
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:       encryptedUserID,
-			RoleID:   encryptedUserRoleID,
-			DivisiID: encryptedUserDivisiID,
-			Email:    encodedEmail,
-			Exp:      time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:        encryptedUserID,
+			RoleID:    encryptedUserRoleID,
+			DivisiID:  encryptedUserDivisiID,
+			Email:     encodedEmail,
+			LoginFrom: encodedLoginFrom,
+			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()
