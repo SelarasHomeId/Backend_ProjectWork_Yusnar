@@ -704,15 +704,17 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, newTaskData.ID)
 			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(*payload.Watch), 0)
 			if *payload.Watch {
-				modelNotifikasi := new(model.NotifikasiEntityModel)
-				modelNotifikasi.Context = ctx
-				modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
-				modelNotifikasi.Message = "Klik untuk melihat detail tugas"
-				modelNotifikasi.IsRead = false
-				modelNotifikasi.UserId = taskData.CreateBy.ID
-				modelNotifikasi.TaskId = taskData.ID
-				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				if userLogin.ID != taskData.CreateBy.ID {
+					modelNotifikasi := new(model.NotifikasiEntityModel)
+					modelNotifikasi.Context = ctx
+					modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat telah dilihat oleh %s", userLogin.Name)
+					modelNotifikasi.Message = "Klik untuk melihat detail tugas"
+					modelNotifikasi.IsRead = false
+					modelNotifikasi.UserId = taskData.CreateBy.ID
+					modelNotifikasi.TaskId = taskData.ID
+					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					}
 				}
 			}
 		}
