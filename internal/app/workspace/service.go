@@ -94,11 +94,12 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			workspace["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *projectData.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view_image": "",
+				"view":       "https://lh3.googleusercontent.com/d/" + *projectData.Cover,
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 

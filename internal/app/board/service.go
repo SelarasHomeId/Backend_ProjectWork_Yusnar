@@ -92,7 +92,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s telah membuat board baru di %s", userLogin.Name, workspaceData.Name)
@@ -172,7 +172,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s telah menghapus board dari %s", userLogin.Name, workspaceData.Name)
@@ -264,7 +264,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx

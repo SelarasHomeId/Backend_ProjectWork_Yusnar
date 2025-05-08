@@ -101,7 +101,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas (%s)", userLogin.Name, taskData.Title)
@@ -256,7 +256,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas (%s)", userLogin.Name, taskData.Title)

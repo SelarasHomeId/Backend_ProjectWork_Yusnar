@@ -116,7 +116,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, modelTask.ID)
+		keyWatchTask := general.GenerateKeyWatchTask(userLogin.ID, modelTask.ID)
 		s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
 
 		newBoardData := new(model.BoardEntityModel)
@@ -128,7 +128,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s", userLogin.Name)
@@ -225,7 +225,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("Tugas (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
@@ -701,7 +701,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			}
 		}
 		if payload.Watch != nil {
-			keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, newTaskData.ID)
+			keyWatchTask := general.GenerateKeyWatchTask(userLogin.ID, newTaskData.ID)
 			s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(*payload.Watch), 0)
 			if *payload.Watch {
 				if userLogin.ID != taskData.CreateBy.ID {
@@ -754,7 +754,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx

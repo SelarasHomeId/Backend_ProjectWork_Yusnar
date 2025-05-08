@@ -68,7 +68,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateR
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s telah membuat label baru", userLogin.Name)
@@ -181,7 +181,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskLabelUpdateR
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx
@@ -235,7 +235,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskLabelDeleteB
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s telah menghapus label", userLogin.Name)

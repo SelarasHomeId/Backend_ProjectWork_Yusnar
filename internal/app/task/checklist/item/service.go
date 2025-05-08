@@ -120,7 +120,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan item pada checklist (%s) di tugas (%s)", userLogin.Name, taskChecklistData.Title, taskData.Title)
@@ -443,7 +443,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx
@@ -615,7 +615,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("Item (%s) pada checklist (%s) telah dihapus oleh %s", checklistItemData.Title, taskChecklistData.Title, userLogin.Name)
@@ -789,7 +789,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyWatchTask := general.GenerateKeyWatchTask(ctx.Auth.ID, modelTask.ID)
+		keyWatchTask := general.GenerateKeyWatchTask(userLogin.ID, modelTask.ID)
 		s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
 
 		newBoardData := new(model.BoardEntityModel)
@@ -801,7 +801,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 		}
 
 		for _, v := range userAdmin {
-			if v.ID != ctx.Auth.ID {
+			if v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("Tugas baru telah dibuat oleh %s dari item (%s) di checklist %s", userLogin.Name, checklistItemData.Title, taskChecklistData.Title)
