@@ -19,6 +19,7 @@ import (
 	"selarashomeid/internal/app/workspace"
 	"selarashomeid/internal/config"
 	"selarashomeid/internal/factory"
+	"selarashomeid/pkg/constant"
 
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -35,9 +36,9 @@ func Init(e *echo.Echo, f *factory.Factory) {
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
 	// static
-	e.Static("/images", "assets/images")
-	e.Static("/share", "/var/www/html/selarashomeid/share")
-	e.Static("/file_saved", "../file_saved")
+	e.Static("/images", constant.PATH_ASSETS_IMAGES)
+	e.Static("/share", constant.PATH_SHARE)
+	e.Static("/file_saved", constant.PATH_FILE_SAVED)
 
 	// routes
 	test.NewHandler(f).Route(e.Group("/test"))

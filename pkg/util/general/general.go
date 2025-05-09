@@ -738,7 +738,7 @@ func SaveFileFromDriveLink(driveURL string) (string, error) {
 		return "", errors.New("file name not found in Content-Disposition")
 	}
 
-	savePath := "../file_saved"
+	savePath := constant.PATH_FILE_SAVED
 	err = os.MkdirAll(savePath, os.ModePerm)
 	if err != nil {
 		return "", fmt.Errorf("failed to create folder: %w", err)

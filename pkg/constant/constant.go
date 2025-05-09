@@ -18,6 +18,10 @@ const (
 	LINK_TIKTOK    = "https://www.tiktok.com/@selarashomeid"
 	LINK_FACEBOOK  = "https://www.facebook.com/profile.php?id=100079489771455&locale=id_ID"
 	LINK_WHATSAPP  = "https://wa.me/"
+
+	PATH_FILE_SAVED    = "../file_saved"
+	PATH_ASSETS_IMAGES = "assets/images"
+	PATH_SHARE         = "/var/www/html/selarashomeid/share"
 )
 
 var (
