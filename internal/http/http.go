@@ -36,6 +36,7 @@ func Init(e *echo.Echo, f *factory.Factory) {
 
 	// static
 	e.Static("/images", "assets/images")
+	e.Static("/share", "/var/www/html/selarashomeid/share")
 	e.Static("/file_saved", "../file_saved")
 
 	// routes
