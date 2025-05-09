@@ -21,7 +21,7 @@ import (
 
 // @title selarashomeid
 // @version 1.0.0
-// @description This is a doc for selarashomeid.
+// @description This is a doc for selarashomeid
 
 func main() {
 	config.Init()
