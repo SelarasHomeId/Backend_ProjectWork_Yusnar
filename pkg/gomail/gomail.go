@@ -3,6 +3,7 @@ package gomail
 import (
 	"errors"
 	"selarashomeid/internal/config"
+	"selarashomeid/pkg/util/general"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -15,10 +16,11 @@ func SendMail(recipient, subject, bodyHtml string) error {
 	}
 
 	mailer := gomail.NewMessage()
-	mailer.SetHeader("From", config.Get().Gomail.SenderName)
+	mailer.SetHeader("From", config.Get().Gomail.AuthEmail, config.Get().Gomail.SenderName)
 	mailer.SetHeader("To", recipient)
 	mailer.SetHeader("Subject", subject)
-	mailer.SetBody("text/html", bodyHtml)
+	mailer.SetBody("text/plain", general.ParseTemplateEmailToPlainText(bodyHtml))
+	mailer.AddAlternative("text/html", bodyHtml)
 
 	portMail, _ := strconv.Atoi(config.Get().Gomail.SmtpPort)
 	dialer := gomail.NewDialer(
