@@ -394,11 +394,12 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			task["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 
@@ -930,11 +931,12 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			res["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view":       "https://lh3.googleusercontent.com/d/" + *data.Cover,
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 
@@ -970,10 +972,11 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"id":      v.ID,
 				"task_id": v.TaskId,
 				"file": map[string]interface{}{
-					"view":    "https://lh3.googleusercontent.com/d/" + v.File,
-					"content": fileDrive.WebContentLink,
-					"ext":     fileDrive.FileExtension,
-					"name":    fileDrive.Name,
+					"view":       "https://lh3.googleusercontent.com/d/" + v.File,
+					"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+					"content":    fileDrive.WebContentLink,
+					"ext":        fileDrive.FileExtension,
+					"name":       fileDrive.Name,
 				},
 				"file_name":  v.FileName,
 				"is_delete":  v.IsDelete,
@@ -1207,11 +1210,12 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			task["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 

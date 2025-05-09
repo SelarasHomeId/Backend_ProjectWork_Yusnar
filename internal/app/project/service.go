@@ -184,11 +184,12 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			project["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 
@@ -412,11 +413,12 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 				return nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
 			}
 			res["cover"] = map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + *data.Cover,
-				"content": cover.WebContentLink,
-				"ext":     cover.FileExtension,
-				"name":    cover.Name,
-				"id":      cover.Id,
+				"view":       "https://lh3.googleusercontent.com/d/" + *data.Cover,
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"content":    cover.WebContentLink,
+				"ext":        cover.FileExtension,
+				"name":       cover.Name,
+				"id":         cover.Id,
 			}
 		}
 	}

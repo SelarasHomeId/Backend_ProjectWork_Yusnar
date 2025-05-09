@@ -2,13 +2,18 @@ package general
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/http"
+	"os"
 	"path/filepath"
 	"regexp"
 	"selarashomeid/internal/abstraction"
+	"selarashomeid/pkg/constant"
 	"strconv"
 	"strings"
 	"text/template"
@@ -515,7 +520,11 @@ func ProcessHTMLResponseEmail(filePath, placeholder, value string) string {
 func ValidateImage(filename string) (bool, string) {
 	imageExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg"}
 	ext := strings.ToLower(filepath.Ext(filename))
-	fullFileName := strings.ReplaceAll(strings.TrimSuffix(filename, ext), ".", "") + ext
+	nameOnly := strings.ReplaceAll(strings.TrimSuffix(filename, ext), ".", "")
+
+	timestamp := time.Now().Format("20060102150405")
+	fullFileName := fmt.Sprintf("%s_%s%s", nameOnly, timestamp, ext)
+
 	for _, validExt := range imageExtensions {
 		if ext == validExt {
 			return true, fullFileName
@@ -572,7 +581,9 @@ func ValidateFileUpload(filename string) (bool, string) {
 	safeName = strings.ReplaceAll(safeName, "\\", "")
 	safeName = strings.ReplaceAll(safeName, " ", "_")
 
-	fullFileName := safeName + ext
+	timestamp := time.Now().Format("20060102150405")
+	fullFileName := safeName + "_" + timestamp + ext
+
 	for _, validExt := range fileExtensions {
 		if ext == validExt {
 			return true, fullFileName
@@ -701,4 +712,64 @@ func ProcessLogoutFrom(loginFrom, logoutFrom string) string {
 		return ""
 	}
 	return loginFrom
+}
+
+func SaveFileFromDriveLink(driveURL string) (string, error) {
+	resp, err := http.Get(driveURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download file: status %s", resp.Status)
+	}
+
+	contentDisposition := resp.Header.Get("Content-Disposition")
+	if contentDisposition == "" {
+		return "", errors.New("unable to detect file name from Content-Disposition")
+	}
+
+	var fileName string
+	parts := strings.Split(contentDisposition, "filename=")
+	if len(parts) > 1 {
+		fileName = strings.Trim(parts[1], `"`)
+	} else {
+		return "", errors.New("file name not found in Content-Disposition")
+	}
+
+	savePath := "../file_saved"
+	err = os.MkdirAll(savePath, os.ModePerm)
+	if err != nil {
+		return "", fmt.Errorf("failed to create folder: %w", err)
+	}
+
+	localFilePath := filepath.Join(savePath, fileName)
+
+	if _, err := os.Stat(localFilePath); err == nil {
+		logrus.Info("File already exists: ", fileName)
+		return fileName, nil
+	}
+
+	out, err := os.Create(localFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to save file: %w", err)
+	}
+
+	logrus.Info("File downloaded and saved: ", fileName)
+	return fileName, nil
+}
+
+func ConvertLinkToFileSaved(driveLink string) string {
+	fileName, err := SaveFileFromDriveLink(driveLink)
+	if err != nil {
+		logrus.Info("Error on convert link gdrive to file saved:", err)
+	}
+	return fmt.Sprintf("%s%s%s", constant.BASE_URL, "/file_saved/", fileName)
 }

@@ -65,8 +65,9 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		res = append(res, map[string]interface{}{
 			"id": v.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + v.File,
-				"content": fileDrive.WebContentLink,
+				"view":       "https://lh3.googleusercontent.com/d/" + v.File,
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  v.FileName,
 			"is_delete":  v.IsDelete,
@@ -95,8 +96,9 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.BannerFindByID
 		res = map[string]interface{}{
 			"id": data.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + data.File,
-				"content": fileDrive.WebContentLink,
+				"view":       "https://lh3.googleusercontent.com/d/" + data.File,
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
 			"is_delete":  data.IsDelete,
@@ -277,8 +279,9 @@ func (s *service) GetPopup(ctx *abstraction.Context) (map[string]interface{}, er
 		res = map[string]interface{}{
 			"id": data.ID,
 			"file": map[string]interface{}{
-				"view":    "https://lh3.googleusercontent.com/d/" + data.File,
-				"content": fileDrive.WebContentLink,
+				"view":       "https://lh3.googleusercontent.com/d/" + data.File,
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
 			"is_delete":  data.IsDelete,
