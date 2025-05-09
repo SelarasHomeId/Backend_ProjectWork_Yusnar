@@ -224,8 +224,8 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		for _, v := range userAdmin {
-			if v.ID != data.ID {
+		if data.RoleId != constant.ROLE_ID_ADMIN {
+			for _, v := range userAdmin {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = "Ada staf yang lupa password di portal login"
