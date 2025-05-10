@@ -17,7 +17,6 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -251,22 +250,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 
 				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
 				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-				valKeyWeb, errGetKeyWeb := s.DbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
-				valKeyMobile, errGetKeyMobile := s.DbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
-				if errGetKeyWeb == redis.Nil {
-					logrus.Infof("user %d not needed auto logout in web", ctx.Auth.ID)
-				} else if errGetKeyWeb != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, errGetKeyWeb, "server_error")
-				} else {
-					s.DbRedis.Del(context.Background(), valKeyWeb)
-				}
-				if errGetKeyMobile == redis.Nil {
-					logrus.Infof("user %d not needed auto logout in mobile", ctx.Auth.ID)
-				} else if errGetKeyMobile != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, errGetKeyMobile, "server_error")
-				} else {
-					s.DbRedis.Del(context.Background(), valKeyMobile)
-				}
+				valKeyWeb, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
+				valKeyMobile, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
+				s.DbRedis.Del(context.Background(), valKeyWeb)
+				s.DbRedis.Del(context.Background(), valKeyMobile)
 			}
 		}
 
