@@ -250,10 +250,8 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 
 				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
 				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-				valKeyWeb, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
-				valKeyMobile, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
-				s.DbRedis.Del(context.Background(), valKeyWeb)
-				s.DbRedis.Del(context.Background(), valKeyMobile)
+				s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
+				s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
 			}
 		}
 

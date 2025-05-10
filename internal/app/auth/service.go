@@ -154,12 +154,10 @@ func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutReques
 
 		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(ctx.Auth.ID, "web")
 		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(ctx.Auth.ID, "mobile")
-		valKeyWeb, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
-		valKeyMobile, _ := s.DbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
 		if payload.LogoutFrom == "web" {
-			s.DbRedis.Del(context.Background(), valKeyWeb)
+			s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
 		} else {
-			s.DbRedis.Del(context.Background(), valKeyMobile)
+			s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
 		}
 
 		return nil
