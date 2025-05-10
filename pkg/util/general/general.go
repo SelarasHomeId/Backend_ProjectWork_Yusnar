@@ -773,3 +773,7 @@ func ConvertLinkToFileSaved(driveLink string) string {
 	}
 	return fmt.Sprintf("%s%s%s", constant.BASE_URL, "/file_saved/", fileName)
 }
+
+func GenerateKeyAutoLogout(userId int, platform string) string {
+	return fmt.Sprintf("logout_user_%d_from_%s", userId, platform)
+}

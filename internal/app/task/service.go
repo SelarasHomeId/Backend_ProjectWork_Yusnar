@@ -116,9 +116,6 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyWatchTask := general.GenerateKeyWatchTask(userLogin.ID, modelTask.ID)
-		s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
-
 		newBoardData := new(model.BoardEntityModel)
 		newBoardData.Context = ctx
 		newBoardData.ID = payload.BoardId
@@ -149,6 +146,9 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		if err := s.TaskCommentRepository.CreateHistory(ctx, modelTask.ID, msgHistory).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		keyWatchTask := general.GenerateKeyWatchTask(userLogin.ID, modelTask.ID)
+		s.DbRedis.Set(context.Background(), keyWatchTask, strconv.FormatBool(false), 0)
 
 		returnId = modelTask.ID
 		return nil

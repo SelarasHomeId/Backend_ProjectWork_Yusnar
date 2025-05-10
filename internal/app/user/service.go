@@ -1,6 +1,7 @@
 package contact
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
@@ -14,7 +15,9 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -34,7 +37,8 @@ type service struct {
 	UserRepository       repository.User
 	NotifikasiRepository repository.Notifikasi
 
-	DB *gorm.DB
+	DB      *gorm.DB
+	DbRedis *redis.Client
 }
 
 func NewService(f *factory.Factory) Service {
@@ -42,7 +46,8 @@ func NewService(f *factory.Factory) Service {
 		UserRepository:       f.UserRepository,
 		NotifikasiRepository: f.NotifikasiRepository,
 
-		DB: f.Db,
+		DB:      f.Db,
+		DbRedis: f.DbRedis,
 	}
 }
 
@@ -211,7 +216,14 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 			if err = s.UserRepository.UpdateLocked(ctx, newUserData).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-			if userData.IsLocked {
+		}
+
+		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if payload.IsLocked != nil {
+			if *payload.IsLocked {
 				if err = gomail.SendMail(userData.Email, "Account Locked for SelarasHomeId", general.ParseTemplateEmailToHtml("./assets/html/email/notif_locked_user.html", struct {
 					NAME  string
 					EMAIL string
@@ -221,6 +233,11 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 				})); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+
+				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+				s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+				s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 			} else {
 				if err = gomail.SendMail(userData.Email, "Account Unlocked for SelarasHomeId", general.ParseTemplateEmailToHtml("./assets/html/email/notif_unlocked_user.html", struct {
 					NAME  string
@@ -231,12 +248,28 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 				})); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+
+				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+				valKeyWeb, errGetKeyWeb := s.DbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
+				valKeyMobile, errGetKeyMobile := s.DbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
+				if errGetKeyWeb == redis.Nil {
+					logrus.Infof("user %d not needed auto logout in web", ctx.Auth.ID)
+				} else if errGetKeyWeb != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, errGetKeyWeb, "server_error")
+				} else {
+					s.DbRedis.Del(context.Background(), valKeyWeb)
+				}
+				if errGetKeyMobile == redis.Nil {
+					logrus.Infof("user %d not needed auto logout in mobile", ctx.Auth.ID)
+				} else if errGetKeyMobile != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, errGetKeyMobile, "server_error")
+				} else {
+					s.DbRedis.Del(context.Background(), valKeyMobile)
+				}
 			}
 		}
 
-		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
-			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-		}
 		return nil
 	}); err != nil {
 		return nil, err
@@ -268,6 +301,12 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRe
 		if err = s.UserRepository.Update(ctx, newUserData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -391,6 +430,11 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 		})); err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+
+		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 
 		return nil
 	}); err != nil {
