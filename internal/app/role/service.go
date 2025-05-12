@@ -1,19 +1,24 @@
 package role
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/factory"
 	"selarashomeid/internal/repository"
 	"selarashomeid/pkg/constant"
+	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
 type Service interface {
 	Find(ctx *abstraction.Context) (map[string]interface{}, error)
+	Export(ctx *abstraction.Context) (string, *bytes.Buffer, error)
 }
 
 type service struct {
@@ -55,4 +60,39 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		"count": count,
 		"data":  res,
 	}, nil
+}
+
+func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
+	data, err := s.RoleRepository.Find(ctx, true)
+	if err != nil && err.Error() != "record not found" {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
+	f := excelize.NewFile()
+	sheet := "Master Data - Role"
+	index, err := f.NewSheet(sheet)
+	if err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheet, "A1", "No")
+	f.SetCellValue(sheet, "B1", "Nama")
+	f.SetCellValue(sheet, "C1", "Deskripsi")
+	for i, v := range data {
+		colA := fmt.Sprintf("A%d", i+2)
+		colB := fmt.Sprintf("B%d", i+2)
+		colC := fmt.Sprintf("C%d", i+2)
+		no := i + 1
+		f.SetCellValue(sheet, colA, no)
+		f.SetCellValue(sheet, colB, v.Name)
+		f.SetCellValue(sheet, colC, v.Description)
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	filename := fmt.Sprintf("Master Data - Role (%s).xlsx", general.NowLocal().Format("2006-01-02"))
+	return filename, &buf, nil
 }

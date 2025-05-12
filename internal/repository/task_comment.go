@@ -42,7 +42,11 @@ func (r *task_comment) FindByTaskId(ctx *abstraction.Context, task_id int, no_pa
 		Limit(limit).
 		Offset(offset).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return
@@ -106,7 +110,11 @@ func (r *task_comment) FindCommentByTaskId(ctx *abstraction.Context, task_id int
 		Limit(limit).
 		Offset(offset).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return

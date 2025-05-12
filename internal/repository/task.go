@@ -49,7 +49,11 @@ func (r *task) FindById(ctx *abstraction.Context, id int) (*model.TaskEntityMode
 	err := conn.
 		Where("id = ? AND is_delete = ?", id, false).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		First(&data).
 		Error
 	if err != nil {
@@ -72,7 +76,11 @@ func (r *task) FindByBoardIdArr(ctx *abstraction.Context, board_id int, no_pagin
 		Limit(limit).
 		Offset(offset).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return
@@ -105,7 +113,11 @@ func (r *task) Find(ctx *abstraction.Context, no_paging bool) (data []*model.Tas
 		Limit(limit).
 		Offset(offset).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return
@@ -138,7 +150,11 @@ func (r *task) FindByWorkspace(ctx *abstraction.Context, workspace_id int, no_pa
 		Limit(limit).
 		Offset(offset).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return
@@ -185,7 +201,11 @@ func (r *task) FindByBoardIdArrNoLimitOrder(ctx *abstraction.Context, board_id i
 		Where(where, whereParam).
 		Order(order).
 		Preload("CreateBy").
+		Preload("CreateBy.Role").
+		Preload("CreateBy.Divisi").
 		Preload("UpdateBy").
+		Preload("UpdateBy.Role").
+		Preload("UpdateBy.Divisi").
 		Find(&data).
 		Error
 	return

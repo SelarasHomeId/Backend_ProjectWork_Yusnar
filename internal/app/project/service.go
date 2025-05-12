@@ -1,6 +1,7 @@
 package project
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"selarashomeid/pkg/util/trxmanager"
 
 	"github.com/sirupsen/logrus"
+	"github.com/xuri/excelize/v2"
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
@@ -26,6 +28,7 @@ type Service interface {
 	Update(ctx *abstraction.Context, payload *dto.ProjectUpdateRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.ProjectDeleteByIDRequest) (map[string]interface{}, error)
 	FindById(ctx *abstraction.Context, payload *dto.ProjectFindByIDRequest) (map[string]interface{}, error)
+	Export(ctx *abstraction.Context) (string, *bytes.Buffer, error)
 }
 
 type service struct {
@@ -425,4 +428,59 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 	return map[string]interface{}{
 		"data": res,
 	}, nil
+}
+
+func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
+	data, err := s.ProjectRepository.Find(ctx, true)
+	if err != nil && err.Error() != "record not found" {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
+	f := excelize.NewFile()
+	sheet := "Master Data - Project"
+	index, err := f.NewSheet(sheet)
+	if err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheet, "A1", "No")
+	f.SetCellValue(sheet, "B1", "Nama Proyek")
+	f.SetCellValue(sheet, "C1", "Lokasi")
+	f.SetCellValue(sheet, "D1", "Cover Proyek")
+	f.SetCellValue(sheet, "E1", "Tanggal Dibuat")
+	for i, v := range data {
+		colA := fmt.Sprintf("A%d", i+2)
+		colB := fmt.Sprintf("B%d", i+2)
+		colC := fmt.Sprintf("C%d", i+2)
+		colD := fmt.Sprintf("D%d", i+2)
+		colE := fmt.Sprintf("E%d", i+2)
+		no := i + 1
+		f.SetCellValue(sheet, colA, no)
+		f.SetCellValue(sheet, colB, v.Name)
+		if v.Location != nil {
+			f.SetCellValue(sheet, colC, *v.Location)
+			f.SetCellHyperLink(sheet, colC, general.IsValidURL(*v.Location), "External")
+		} else {
+			f.SetCellValue(sheet, colC, "-")
+		}
+		if v.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *v.Cover)
+			if err != nil {
+				return "", nil, response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			f.SetCellValue(sheet, colD, cover.WebContentLink)
+			f.SetCellHyperLink(sheet, colD, general.IsValidURL(cover.WebContentLink), "External")
+		} else {
+			f.SetCellValue(sheet, colD, "-")
+		}
+		f.SetCellValue(sheet, colE, v.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	filename := fmt.Sprintf("Master Data - Project (%s).xlsx", general.NowLocal().Format("2006-01-02"))
+	return filename, &buf, nil
 }

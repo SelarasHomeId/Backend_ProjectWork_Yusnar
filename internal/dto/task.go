@@ -35,3 +35,8 @@ type TaskUpdateRequest struct {
 type TaskFindByIDRequest struct {
 	ID int `param:"id" validate:"required"`
 }
+
+type TaskExportRequest struct {
+	WorkspaceId *int `query:"workspace_id"`
+	BoardId     *int `query:"board_id"`
+}

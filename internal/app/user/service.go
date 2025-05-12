@@ -1,6 +1,7 @@
 package contact
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+	"github.com/xuri/excelize/v2"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -30,6 +32,7 @@ type Service interface {
 	ChangePassword(ctx *abstraction.Context, payload *dto.UserChangePasswordRequest) (map[string]interface{}, error)
 	ResetPassword(ctx *abstraction.Context, payload *dto.UserResetPasswordRequest) (map[string]interface{}, error)
 	GetUserInfo(ctx *abstraction.Context) (map[string]interface{}, error)
+	Export(ctx *abstraction.Context) (string, *bytes.Buffer, error)
 }
 
 type service struct {
@@ -460,4 +463,62 @@ func (s *service) GetUserInfo(ctx *abstraction.Context) (map[string]interface{},
 	return map[string]interface{}{
 		"data": res,
 	}, nil
+}
+
+func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
+	data, err := s.UserRepository.Find(ctx, true)
+	if err != nil && err.Error() != "record not found" {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
+	f := excelize.NewFile()
+	sheet := "Master Data - User"
+	index, err := f.NewSheet(sheet)
+	if err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheet, "A1", "No")
+	f.SetCellValue(sheet, "B1", "Nama")
+	f.SetCellValue(sheet, "C1", "Email")
+	f.SetCellValue(sheet, "D1", "Role")
+	f.SetCellValue(sheet, "E1", "Divisi")
+	f.SetCellValue(sheet, "F1", "Status Akun")
+	f.SetCellValue(sheet, "G1", "Login Terbaru")
+	f.SetCellValue(sheet, "H1", "Tanggal Dibuat")
+	for i, v := range data {
+		colA := fmt.Sprintf("A%d", i+2)
+		colB := fmt.Sprintf("B%d", i+2)
+		colC := fmt.Sprintf("C%d", i+2)
+		colD := fmt.Sprintf("D%d", i+2)
+		colE := fmt.Sprintf("E%d", i+2)
+		colF := fmt.Sprintf("F%d", i+2)
+		colG := fmt.Sprintf("G%d", i+2)
+		colH := fmt.Sprintf("H%d", i+2)
+		no := i + 1
+		f.SetCellValue(sheet, colA, no)
+		f.SetCellValue(sheet, colB, v.Name)
+		f.SetCellValue(sheet, colC, v.Email)
+		f.SetCellValue(sheet, colD, v.Role.Name)
+		f.SetCellValue(sheet, colE, v.Divisi.Name)
+		if v.IsLocked {
+			f.SetCellValue(sheet, colF, "Terkunci")
+		} else {
+			f.SetCellValue(sheet, colF, "Tidak Terkunci")
+		}
+		if v.LoginFrom != "" {
+			f.SetCellValue(sheet, colG, general.CapitalizeEachWord(v.LoginFrom))
+		} else {
+			f.SetCellValue(sheet, colG, "-")
+		}
+		f.SetCellValue(sheet, colH, v.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	filename := fmt.Sprintf("Master Data - User (%s).xlsx", general.NowLocal().Format("2006-01-02"))
+	return filename, &buf, nil
 }

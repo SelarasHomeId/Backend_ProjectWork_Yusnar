@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
@@ -776,4 +778,48 @@ func ConvertLinkToFileSaved(driveLink string) string {
 
 func GenerateKeyAutoLogout(userId int, platform string) string {
 	return fmt.Sprintf("logout_user_%d_from_%s", userId, platform)
+}
+
+func GenerateInitial(name string) string {
+	words := strings.Fields(name)
+	if len(words) == 0 {
+		return ""
+	}
+	switch len(words) {
+	case 1:
+		return strings.ToUpper(string([]rune(words[0])[0]))
+	case 2:
+		return strings.ToUpper(string([]rune(words[0])[0]) + string([]rune(words[1])[0]))
+	default:
+		first := string([]rune(words[0])[0])
+		last := string([]rune(words[len(words)-1])[0])
+		return strings.ToUpper(first + last)
+	}
+}
+
+func IsValidURL(input string) string {
+	parsedURL, err := url.ParseRequestURI(input)
+	if err != nil {
+		return ""
+	}
+	if (parsedURL.Scheme == "http" || parsedURL.Scheme == "https") && parsedURL.Host != "" {
+		return parsedURL.String()
+	}
+
+	return ""
+}
+
+func CapitalizeEachWord(input string) string {
+	words := strings.Fields(input)
+	for i, word := range words {
+		if len(word) > 0 {
+			runes := []rune(word)
+			runes[0] = unicode.ToUpper(runes[0])
+			for j := 1; j < len(runes); j++ {
+				runes[j] = unicode.ToLower(runes[j])
+			}
+			words[i] = string(runes)
+		}
+	}
+	return strings.Join(words, " ")
 }

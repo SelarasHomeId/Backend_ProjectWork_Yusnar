@@ -1,6 +1,7 @@
 package task
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,9 +17,12 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
+	"github.com/xuri/excelize/v2"
 	"google.golang.org/api/drive/v3"
 	"gorm.io/gorm"
 )
@@ -30,6 +34,7 @@ type Service interface {
 	Update(ctx *abstraction.Context, payload *dto.TaskUpdateRequest) (map[string]interface{}, error)
 	FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRequest) (map[string]interface{}, error)
 	Find(ctx *abstraction.Context) (map[string]interface{}, error)
+	Export(ctx *abstraction.Context, payload *dto.TaskExportRequest) (string, *bytes.Buffer, error)
 }
 
 type service struct {
@@ -43,6 +48,7 @@ type service struct {
 	TaskLabelRepository     repository.TaskLabel
 	TaskChecklistRepository repository.TaskChecklist
 	ChecklistItemRepository repository.ChecklistItem
+	ProjectRepository       repository.Project
 
 	DB      *gorm.DB
 	DbRedis *redis.Client
@@ -62,6 +68,7 @@ func NewService(f *factory.Factory) Service {
 		TaskLabelRepository:     f.TaskLabelRepository,
 		TaskChecklistRepository: f.TaskChecklistRepository,
 		ChecklistItemRepository: f.ChecklistItemRepository,
+		ProjectRepository:       f.ProjectRepository,
 
 		DB:      f.Db,
 		DbRedis: f.DbRedis,
@@ -1251,4 +1258,539 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 		"count": count,
 		"data":  res,
 	}, nil
+}
+
+func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportRequest) (string, *bytes.Buffer, error) {
+	var (
+		fileName string
+		buf      bytes.Buffer
+	)
+	f := excelize.NewFile()
+	if payload.WorkspaceId != nil {
+		workspace, err := s.WorkspaceRepository.FindById(ctx, *payload.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		project, err := s.ProjectRepository.FindById(ctx, workspace.ProjectId)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		dataBoard, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, workspace.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		sheetProject := "Project Info"
+		ProcessProjectToExcel(s, ctx, f, sheetProject, nil, project, dataBoard) // process project to excel
+		if err != nil {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		for _, v := range dataBoard {
+			board, err := s.BoardRepository.FindById(ctx, v.ID)
+			if err != nil && err.Error() != "record not found" {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			dataTask, err := s.TaskRepository.FindByBoardIdArr(ctx, v.ID, true)
+			if err != nil && err.Error() != "record not found" {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			sheetBoard := fmt.Sprintf("%s (%d)", board.Name, board.TaskTotal)
+			err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
+			if err != nil {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+		}
+
+		if err := f.Write(&buf); err != nil {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		fileName = fmt.Sprintf("%s (%s).xlsx", workspace.Name, general.NowLocal().Format("2006-01-02"))
+	} else if payload.BoardId != nil {
+		board, err := s.BoardRepository.FindById(ctx, *payload.BoardId)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		workspace, err := s.WorkspaceRepository.FindById(ctx, board.WorkspaceId)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		dataTask, err := s.TaskRepository.FindByBoardIdArr(ctx, board.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		sheetBoard := fmt.Sprintf("%s (%d)", board.Name, board.TaskTotal)
+		err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
+		if err != nil {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		if err := f.Write(&buf); err != nil {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		fileName = fmt.Sprintf("%s - %s (%s).xlsx", board.Name, workspace.Name, general.NowLocal().Format("2006-01-02"))
+	} else {
+		dataWorkspace, err := s.WorkspaceRepository.Find(ctx, true)
+		if err != nil && err.Error() != "record not found" {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		for _, v := range dataWorkspace {
+			workspace, err := s.WorkspaceRepository.FindById(ctx, v.ID)
+			if err != nil && err.Error() != "record not found" {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			project, err := s.ProjectRepository.FindById(ctx, workspace.ProjectId)
+			if err != nil && err.Error() != "record not found" {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+			dataBoard, err := s.BoardRepository.FindByWorkspaceIdArr(ctx, workspace.ID, true)
+			if err != nil && err.Error() != "record not found" {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			sheetProject := workspace.Name
+			ProcessProjectToExcel(s, ctx, f, sheetProject, workspace, project, dataBoard) // process project to excel
+			if err != nil {
+				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			for _, v := range dataBoard {
+				board, err := s.BoardRepository.FindById(ctx, v.ID)
+				if err != nil && err.Error() != "record not found" {
+					return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				dataTask, err := s.TaskRepository.FindByBoardIdArr(ctx, v.ID, true)
+				if err != nil && err.Error() != "record not found" {
+					return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+
+				sheetBoard := fmt.Sprintf("%s - %s (%d)", general.GenerateInitial(workspace.Name), board.Name, board.TaskTotal)
+				err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
+				if err != nil {
+					return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+			}
+		}
+		if err := f.Write(&buf); err != nil {
+			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		fileName = fmt.Sprintf("All Data SelarasHomeId (%s).xlsx", general.NowLocal().Format("2006-01-02"))
+	}
+
+	return fileName, &buf, nil
+}
+
+func ProcessProjectToExcel(s *service, ctx *abstraction.Context, f *excelize.File, sheetName string, workspace *model.WorkspaceEntityModel, project *model.ProjectEntityModel, dataBoard []*model.BoardEntityModel) error {
+	index, err := f.NewSheet(sheetName)
+	if err != nil {
+		return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheetName, "A1", "Nama Proyek")
+	f.SetCellValue(sheetName, "B1", "Lokasi")
+	f.SetCellValue(sheetName, "C1", "Cover Proyek")
+	f.SetCellValue(sheetName, "D1", "Tanggal Dibuat")
+	f.SetCellValue(sheetName, "A2", project.Name)
+	if project.Location != nil {
+		f.SetCellValue(sheetName, "B2", *project.Location)
+		f.SetCellHyperLink(sheetName, "B2", general.IsValidURL(*project.Location), "External")
+	} else {
+		f.SetCellValue(sheetName, "B2", "-")
+	}
+	if project.Cover != nil {
+		cover, err := gdrive.GetFile(s.sDrive, *project.Cover)
+		if err != nil {
+			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+		}
+		f.SetCellValue(sheetName, "C2", cover.WebContentLink)
+		f.SetCellHyperLink(sheetName, "C2", general.IsValidURL(cover.WebContentLink), "External")
+	} else {
+		f.SetCellValue(sheetName, "C2", "-")
+	}
+	f.SetCellValue(sheetName, "D2", project.CreatedAt.Format("2006-01-02 15:04:05"))
+
+	boardAvail := false
+	for i, v := range dataBoard {
+		boardAvail = true
+		colA := fmt.Sprintf("A%d", i+5)
+		f.SetCellValue(sheetName, colA, v.Name)
+		if workspace != nil {
+			f.SetCellHyperLink(sheetName, colA, fmt.Sprintf("#'%s - %s (%d)'!A1", general.GenerateInitial(workspace.Name), v.Name, v.TaskTotal), "Location")
+		} else {
+			f.SetCellHyperLink(sheetName, colA, fmt.Sprintf("#'%s (%d)'!A1", v.Name, v.TaskTotal), "Location")
+		}
+	}
+	if boardAvail {
+		f.SetCellValue(sheetName, "A4", "Board tersedia (klik untuk melihat):")
+	} else {
+		f.SetCellValue(sheetName, "A4", "Board tidak tersedia")
+	}
+
+	return nil
+}
+
+func ProcessTaskToExcel(s *service, ctx *abstraction.Context, f *excelize.File, sheetName string, dataTask []*model.TaskEntityModel) error {
+	sheetBoard := sheetName
+	index, err := f.NewSheet(sheetBoard)
+	if err != nil {
+		return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheetBoard, "A1", "No")
+	f.SetCellValue(sheetBoard, "B1", "Tugas")
+	f.SetCellValue(sheetBoard, "C1", "Deskripsi")
+	f.SetCellValue(sheetBoard, "D1", "Member")
+	f.SetCellValue(sheetBoard, "E1", "Label")
+	f.SetCellValue(sheetBoard, "F1", "Status")
+	f.SetCellValue(sheetBoard, "G1", "Tenggat Waktu")
+	f.SetCellValue(sheetBoard, "H1", "Cover Tugas")
+	f.SetCellValue(sheetBoard, "I1", "Berkas")
+	f.SetCellValue(sheetBoard, "J1", "Checklist dan Item")
+	f.SetCellValue(sheetBoard, "K1", "Histori dan Komentar")
+	f.SetCellValue(sheetBoard, "L1", "Dibuat Oleh")
+	f.SetCellValue(sheetBoard, "M1", "Tanggal Dibuat")
+
+	for i, v := range dataTask {
+		fileData, err := s.TaskFileRepository.FindByTaskId(ctx, v.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		commentData, err := s.TaskCommentRepository.FindByTaskId(ctx, v.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+		checklistData, err := s.TaskChecklistRepository.FindByTaskId(ctx, v.ID, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		colA := fmt.Sprintf("A%d", i+2)
+		colB := fmt.Sprintf("B%d", i+2)
+		colC := fmt.Sprintf("C%d", i+2)
+		colD := fmt.Sprintf("D%d", i+2)
+		colE := fmt.Sprintf("E%d", i+2)
+		colF := fmt.Sprintf("F%d", i+2)
+		colG := fmt.Sprintf("G%d", i+2)
+		colH := fmt.Sprintf("H%d", i+2)
+		colI := fmt.Sprintf("I%d", i+2)
+		colJ := fmt.Sprintf("J%d", i+2)
+		colK := fmt.Sprintf("K%d", i+2)
+		colL := fmt.Sprintf("L%d", i+2)
+		colM := fmt.Sprintf("M%d", i+2)
+		no := i + 1
+		f.SetCellValue(sheetBoard, colA, no)
+		f.SetCellValue(sheetBoard, colB, v.Title)
+		if v.Description != nil {
+			f.SetCellValue(sheetBoard, colC, *v.Description)
+		} else {
+			f.SetCellValue(sheetBoard, colC, "-")
+		}
+		if v.AssignToUser != nil {
+			var assignToUser []map[string]interface{}
+			assignToUserArr := general.StringToArrayInt(v.AssignToUser)
+			for _, u := range assignToUserArr {
+				dataUser, err := s.UserRepository.FindById(ctx, u)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataUser != nil {
+					assignToUser = append(assignToUser, map[string]interface{}{
+						"id":     dataUser.ID,
+						"name":   dataUser.Name,
+						"email":  dataUser.Email,
+						"divisi": dataUser.Divisi.Name,
+						"role":   dataUser.Role.Name,
+					})
+				}
+			}
+			var valAssignToUser []string
+			for _, j := range assignToUser {
+				name, nameOk := j["name"].(string)
+				role, roleOk := j["role"].(string)
+				divisi, divisiOk := j["divisi"].(string)
+				if nameOk && roleOk && divisiOk {
+					valAssignToUser = append(valAssignToUser, fmt.Sprintf("%s (%s - %s)", name, role, divisi))
+				}
+			}
+			f.SetCellValue(sheetBoard, colD, strings.Join(valAssignToUser, "\n"))
+		} else {
+			f.SetCellValue(sheetBoard, colD, "-")
+		}
+		if v.Label != nil {
+			var label []map[string]interface{}
+			labelArr := general.StringToArrayInt(v.Label)
+			for _, v := range labelArr {
+				dataLabel, err := s.TaskLabelRepository.FindById(ctx, v)
+				if err != nil && err.Error() != "record not found" {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+				if dataLabel != nil {
+					label = append(label, map[string]interface{}{
+						"id":    dataLabel.ID,
+						"title": dataLabel.Title,
+						"color": dataLabel.Color,
+					})
+				}
+			}
+			var valLabel []string
+			for _, j := range label {
+				title, titleOk := j["title"].(string)
+				color, colorOk := j["color"].(string)
+				if titleOk && colorOk {
+					valLabel = append(valLabel, fmt.Sprintf("%s (%s)", title, general.GetColorNameFromCode(color)))
+				}
+			}
+			f.SetCellValue(sheetBoard, colE, strings.Join(valLabel, "\n"))
+		} else {
+			f.SetCellValue(sheetBoard, colE, "-")
+		}
+		if v.IsCompleted {
+			f.SetCellValue(sheetBoard, colF, "Selesai")
+		} else {
+			f.SetCellValue(sheetBoard, colF, "Belum Selesai")
+		}
+		if v.DueDate != nil {
+			f.SetCellValue(sheetBoard, colG, v.DueDate.Format("2006-01-02 15:04:05"))
+		} else {
+			f.SetCellValue(sheetBoard, colG, "-")
+		}
+		if v.Cover != nil {
+			cover, err := gdrive.GetFile(s.sDrive, *v.Cover)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "cover not found")
+			}
+			f.SetCellValue(sheetBoard, colH, cover.WebContentLink)
+			f.SetCellHyperLink(sheetBoard, colH, general.IsValidURL(cover.WebContentLink), "External")
+		} else {
+			f.SetCellValue(sheetBoard, colH, "-")
+		}
+
+		var resFile []map[string]interface{}
+		for _, j := range fileData {
+			fileDrive, err := gdrive.GetFile(s.sDrive, j.File)
+			if err != nil {
+				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "file not found")
+			}
+			resFile = append(resFile, map[string]interface{}{
+				"file": map[string]interface{}{
+					"content": fileDrive.WebContentLink,
+				},
+				"file_name": j.FileName,
+			})
+		}
+		if resFile != nil {
+			var valFile []string
+			for _, j := range resFile {
+				fileNameRaw := j["file_name"]
+				fileRaw := j["file"]
+
+				fileName, okName := fileNameRaw.(string)
+				fileMap, okFile := fileRaw.(map[string]interface{})
+
+				if okName && okFile {
+					viewSavedRaw := fileMap["content"]
+					viewSaved, okView := viewSavedRaw.(string)
+
+					if okView {
+						valFile = append(valFile, fmt.Sprintf("%s (%s)", fileName, viewSaved))
+					}
+				}
+			}
+			f.SetCellValue(sheetBoard, colI, strings.Join(valFile, "\n"))
+		} else {
+			f.SetCellValue(sheetBoard, colI, "-")
+		}
+
+		var resChecklist []map[string]interface{}
+		for _, v := range checklistData {
+			dataChecklistItem, err := s.ChecklistItemRepository.FindByTaskChecklistIdArr(ctx, v.ID, true)
+			if err != nil && err.Error() != "record not found" {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
+
+			var dataChecklistItemArr []map[string]interface{}
+			isChecklistItemCompleted := 0
+			for _, ci := range dataChecklistItem {
+				if ci.IsCompleted {
+					isChecklistItemCompleted++
+				}
+				checklistItem := map[string]interface{}{
+					"title":          ci.Title,
+					"assign_to_user": ci.AssignToUser,
+					"due_date":       ci.DueDate,
+					"is_completed":   ci.IsCompleted,
+				}
+
+				if ci.AssignToUser != nil {
+					var assignToUser []map[string]interface{}
+					assignToUserArr := general.StringToArrayInt(ci.AssignToUser)
+					for _, v := range assignToUserArr {
+						dataUser, err := s.UserRepository.FindById(ctx, v)
+						if err != nil && err.Error() != "record not found" {
+							return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+						}
+						if dataUser != nil {
+							assignToUser = append(assignToUser, map[string]interface{}{
+								"name":   dataUser.Name,
+								"role":   dataUser.Role.Name,
+								"divisi": dataUser.Divisi.Name,
+							})
+						}
+					}
+					checklistItem["assign_to_user"] = map[string]interface{}{
+						"count": len(assignToUserArr),
+						"data":  assignToUser,
+					}
+				}
+
+				dataChecklistItemArr = append(dataChecklistItemArr, checklistItem)
+			}
+
+			checkPersentase := 0
+			if len(dataChecklistItem) > 0 {
+				checkPersentase = (100 * isChecklistItemCompleted) / len(dataChecklistItem)
+			}
+
+			resChecklist = append(resChecklist, map[string]interface{}{
+				"title":            v.Title,
+				"check_persentase": strconv.Itoa(checkPersentase) + "%",
+				"item": map[string]interface{}{
+					"count": len(dataChecklistItem),
+					"data":  dataChecklistItemArr,
+				},
+			})
+		}
+		if resChecklist != nil {
+			var valChecklist []string
+			for _, j := range resChecklist {
+				itemRaw := j["item"]
+				valItemChecklist := []string{}
+
+				itemMap, okItem := itemRaw.(map[string]interface{})
+				if !okItem {
+					continue
+				}
+
+				dataRaw, okData := itemMap["data"]
+				if !okData {
+					continue
+				}
+
+				dataSliceInterface, okSlice := dataRaw.([]map[string]interface{})
+				if !okSlice {
+					continue
+				}
+
+				for i, k := range dataSliceInterface {
+					no := i + 1
+					titleRaw := k["title"]
+					isCompletedRaw := k["is_completed"]
+					status := "Belum Selesai"
+					if isCompleted, ok := isCompletedRaw.(bool); ok && isCompleted {
+						status = "Selesai"
+					}
+
+					assignToUserStr := ""
+					if ar, ok := k["assign_to_user"].(map[string]interface{}); ok && ar != nil {
+						if assignMap, ok := k["assign_to_user"].(map[string]interface{}); ok {
+							if ux, ok := assignMap["data"].([]map[string]interface{}); ok {
+								var names []string
+								for _, u := range ux {
+									if n, ok := u["name"].(string); ok {
+										if r, ok := u["role"].(string); ok {
+											if d, ok := u["divisi"].(string); ok {
+												names = append(names, fmt.Sprintf("%s (%s %s)", n, r, d))
+											}
+										}
+									}
+								}
+								assignToUserStr = general.FormatNamesFromArray(names)
+							}
+						}
+					}
+
+					dueDateStr := ""
+					if dr, ok := k["due_date"].(*time.Time); ok && dr != nil {
+						dueDateStr = dr.Format("2006-01-02 15:04:05")
+					}
+
+					titleStr, _ := titleRaw.(string)
+					if assignToUserStr == "" {
+						assignToUserStr = "no member"
+					}
+					if dueDateStr == "" {
+						dueDateStr = "no due date"
+					}
+					valItemChecklist = append(valItemChecklist,
+						fmt.Sprintf("%d. %s - %s - Member: %s - Due date: %s",
+							no, titleStr, status, assignToUserStr, dueDateStr,
+						),
+					)
+				}
+
+				title, _ := j["title"].(string)
+				persentase, _ := j["check_persentase"].(string)
+				valChecklist = append(valChecklist,
+					fmt.Sprintf("%s (%s): \n%s",
+						title, persentase,
+						strings.Join(valItemChecklist, "\n"),
+					),
+				)
+			}
+			f.SetCellValue(sheetBoard, colJ, strings.Join(valChecklist, "\n"))
+		} else {
+			f.SetCellValue(sheetBoard, colJ, "-")
+		}
+
+		var resComment []map[string]interface{}
+		for _, v := range commentData {
+			resComment = append(resComment, map[string]interface{}{
+				"id":         v.ID,
+				"task_id":    v.TaskId,
+				"comment":    v.Comment,
+				"is_delete":  v.IsDelete,
+				"is_history": v.IsHistory,
+				"created_at": v.CreatedAt.Format("2006-01-02 15:04:05"),
+				"created_by": map[string]interface{}{
+					"name":   v.CreateBy.Name,
+					"role":   v.CreateBy.Role.Name,
+					"divisi": v.CreateBy.Divisi.Name,
+				},
+			})
+		}
+		if resComment != nil {
+			var valComment []string
+			for _, j := range resComment {
+				createdBy := j["created_by"].(map[string]interface{})
+				name := createdBy["name"].(string)
+				role := createdBy["role"].(string)
+				divisi := createdBy["divisi"].(string)
+				comment := j["comment"].(string)
+				createdAt := j["created_at"].(string)
+
+				history := ""
+				if isHistory, ok := j["is_history"].(bool); ok && isHistory {
+					history = "(history)"
+				}
+
+				if name == "System" {
+					valComment = append(valComment, fmt.Sprintf("%s <%s> - %s %s", name, createdAt, comment, history))
+				} else {
+					valComment = append(valComment, fmt.Sprintf("%s (%s - %s) <%s> - %s %s", name, role, divisi, createdAt, comment, history))
+				}
+			}
+			f.SetCellValue(sheetBoard, colK, strings.Join(valComment, "\n"))
+		} else {
+			f.SetCellValue(sheetBoard, colK, "-")
+		}
+
+		f.SetCellValue(sheetBoard, colL, fmt.Sprintf("%s (%s - %s)", v.CreateBy.Name, v.CreateBy.Role.Name, v.CreateBy.Divisi.Name))
+		f.SetCellValue(sheetBoard, colM, v.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	return nil
 }

@@ -1,7 +1,9 @@
 package divisi
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/dto"
@@ -13,6 +15,7 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -22,6 +25,7 @@ type Service interface {
 	Update(ctx *abstraction.Context, payload *dto.DivisiUpdateRequest) (map[string]interface{}, error)
 	Delete(ctx *abstraction.Context, payload *dto.DivisiDeleteByIDRequest) (map[string]interface{}, error)
 	FindById(ctx *abstraction.Context, payload *dto.DivisiFindByIDRequest) (map[string]interface{}, error)
+	Export(ctx *abstraction.Context) (string, *bytes.Buffer, error)
 }
 
 type service struct {
@@ -201,4 +205,39 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.DivisiFindByID
 	return map[string]interface{}{
 		"data": res,
 	}, nil
+}
+
+func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
+	data, err := s.DivisiRepository.Find(ctx, true)
+	if err != nil && err.Error() != "record not found" {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
+	f := excelize.NewFile()
+	sheet := "Master Data - Divisi"
+	index, err := f.NewSheet(sheet)
+	if err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	f.DeleteSheet("Sheet1")
+	f.SetActiveSheet(index)
+	f.SetCellValue(sheet, "A1", "No")
+	f.SetCellValue(sheet, "B1", "Nama")
+	f.SetCellValue(sheet, "C1", "Tanggal Dibuat")
+	for i, v := range data {
+		colA := fmt.Sprintf("A%d", i+2)
+		colB := fmt.Sprintf("B%d", i+2)
+		colC := fmt.Sprintf("C%d", i+2)
+		no := i + 1
+		f.SetCellValue(sheet, colA, no)
+		f.SetCellValue(sheet, colB, v.Name)
+		f.SetCellValue(sheet, colC, v.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+	filename := fmt.Sprintf("Master Data - Divisi (%s).xlsx", general.NowLocal().Format("2006-01-02"))
+	return filename, &buf, nil
 }

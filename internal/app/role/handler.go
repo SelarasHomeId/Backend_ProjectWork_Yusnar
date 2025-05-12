@@ -25,3 +25,11 @@ func (h handler) Find(c echo.Context) (err error) {
 	}
 	return response.SuccessResponse(data).SendSuccess(c)
 }
+
+func (h handler) Export(c echo.Context) (err error) {
+	filename, data, err := h.service.Export(c.(*abstraction.Context))
+	if err != nil {
+		return response.ErrorResponse(err).SendError(c)
+	}
+	return response.SendExcelData(c, filename, *data)
+}

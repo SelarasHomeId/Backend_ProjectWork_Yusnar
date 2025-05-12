@@ -116,12 +116,12 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 
 func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error) {
 	data, err := s.AffiliateRepository.Find(ctx, true)
-	if err != nil {
+	if err != nil && err.Error() != "record not found" {
 		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
 
 	f := excelize.NewFile()
-	sheet := "Data Affiliate Customer"
+	sheet := "Affiliate Request"
 	index, err := f.NewSheet(sheet)
 	if err != nil {
 		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -153,13 +153,13 @@ func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error
 		f.SetCellValue(sheet, colE, v.Instagram)
 		f.SetCellValue(sheet, colF, v.Tiktok)
 		f.SetCellValue(sheet, colG, v.Info)
-		f.SetCellValue(sheet, colH, v.CreatedAt)
+		f.SetCellValue(sheet, colH, v.CreatedAt.Format("2006-01-02 15:04:05"))
 	}
 
 	var buf bytes.Buffer
 	if err := f.Write(&buf); err != nil {
 		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
-	filename := fmt.Sprintf("ExportData-Affiliate-Customer_%s.xlsx", general.NowLocal().Format("2006-01-02_15:04:05"))
+	filename := fmt.Sprintf("Affiliate Request (%s).xlsx", general.NowLocal().Format("2006-01-02"))
 	return filename, &buf, nil
 }
