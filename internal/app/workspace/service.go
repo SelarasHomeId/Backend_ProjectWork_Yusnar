@@ -95,7 +95,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			}
 			workspace["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *projectData.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,
@@ -238,7 +238,7 @@ func (s *service) GetData(ctx *abstraction.Context, payload *dto.WorkspaceGetDat
 				}
 				task["cover"] = map[string]interface{}{
 					"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
-					"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+					"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 					"content":    cover.WebContentLink,
 					"ext":        cover.FileExtension,
 					"name":       cover.Name,

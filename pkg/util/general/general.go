@@ -2,7 +2,6 @@ package general
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -716,20 +715,29 @@ func ProcessLogoutFrom(loginFrom, logoutFrom string) string {
 	return loginFrom
 }
 
-func SaveFileFromDriveLink(driveURL string) (string, error) {
-	resp, err := http.Get(driveURL)
+func SaveFileFromDriveLink(driveURL string) {
+	req, _ := http.NewRequest("GET", driveURL, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; custom-downloader/1.0)")
+	client := http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to download file: %w", err)
+		logrus.Error("Failed to download file: ", err)
+		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to download file: status %s", resp.Status)
+		logrus.Error("Failed to download file: status ", resp.Status)
+		return
 	}
 
 	contentDisposition := resp.Header.Get("Content-Disposition")
 	if contentDisposition == "" {
-		return "", errors.New("unable to detect file name from Content-Disposition")
+		logrus.Error("Unable to detect file name from Content-Disposition")
+		return
 	}
 
 	var fileName string
@@ -737,43 +745,52 @@ func SaveFileFromDriveLink(driveURL string) (string, error) {
 	if len(parts) > 1 {
 		fileName = strings.Trim(parts[1], `"`)
 	} else {
-		return "", errors.New("file name not found in Content-Disposition")
+		logrus.Error("File name not found in Content-Disposition")
+		return
 	}
 
 	savePath := constant.PATH_FILE_SAVED
 	err = os.MkdirAll(savePath, os.ModePerm)
 	if err != nil {
-		return "", fmt.Errorf("failed to create folder: %w", err)
+		logrus.Error("Failed to create folder: ", err)
+		return
 	}
 
 	localFilePath := filepath.Join(savePath, fileName)
 
 	if _, err := os.Stat(localFilePath); err == nil {
 		logrus.Info("File already exists: ", fileName)
-		return fileName, nil
+		return
 	}
 
 	out, err := os.Create(localFilePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create file: %w", err)
+		logrus.Error("Failed to create file: ", err)
+		return
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to save file: %w", err)
+		logrus.Error("Failed to save file: ", err)
+		return
 	}
 
 	logrus.Info("File downloaded and saved: ", fileName)
-	return fileName, nil
 }
 
-func ConvertLinkToFileSaved(driveLink string) string {
-	fileName, err := SaveFileFromDriveLink(driveLink)
-	if err != nil {
-		logrus.Info("Error on convert link gdrive to file saved:", err)
+func ConvertLinkToFileSaved(driveLink, fileName, ext string) string {
+	go SaveFileFromDriveLink(driveLink)
+	return fmt.Sprintf("%s%s%s", constant.BASE_URL, "/file_saved/", EnsureFileExtension(fileName, ext))
+}
+
+func EnsureFileExtension(filename, ext string) string {
+	currentExt := filepath.Ext(filename)
+	if currentExt == "" {
+		cleanExt := strings.TrimPrefix(ext, ".")
+		return filename + "." + cleanExt
 	}
-	return fmt.Sprintf("%s%s%s", constant.BASE_URL, "/file_saved/", fileName)
+	return filename
 }
 
 func GenerateKeyAutoLogout(userId int, platform string) string {

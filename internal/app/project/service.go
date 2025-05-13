@@ -188,7 +188,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			}
 			project["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,
@@ -417,7 +417,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.ProjectFindByI
 			}
 			res["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *data.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,

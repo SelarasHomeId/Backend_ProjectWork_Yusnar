@@ -224,7 +224,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskFileFi
 			"task_id": v.TaskId,
 			"file": map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + v.File,
-				"view_saved": general.ConvertLinkToFileSaved(file.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(file.WebContentLink, file.Name, file.FileExtension),
 				"content":    file.WebContentLink,
 				"ext":        file.FileExtension,
 				"name":       file.Name,

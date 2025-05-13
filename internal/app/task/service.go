@@ -402,7 +402,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 			}
 			task["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,
@@ -939,7 +939,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			}
 			res["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *data.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,
@@ -980,7 +980,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 				"task_id": v.TaskId,
 				"file": map[string]interface{}{
 					"view":       "https://lh3.googleusercontent.com/d/" + v.File,
-					"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+					"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink, fileDrive.Name, fileDrive.FileExtension),
 					"content":    fileDrive.WebContentLink,
 					"ext":        fileDrive.FileExtension,
 					"name":       fileDrive.Name,
@@ -1218,7 +1218,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			}
 			task["cover"] = map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + *v.Cover,
-				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(cover.WebContentLink, cover.Name, cover.FileExtension),
 				"content":    cover.WebContentLink,
 				"ext":        cover.FileExtension,
 				"name":       cover.Name,

@@ -66,7 +66,7 @@ func (s *service) Find(ctx *abstraction.Context) (map[string]interface{}, error)
 			"id": v.ID,
 			"file": map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + v.File,
-				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink, fileDrive.Name, fileDrive.FileExtension),
 				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  v.FileName,
@@ -97,7 +97,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.BannerFindByID
 			"id": data.ID,
 			"file": map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + data.File,
-				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink, fileDrive.Name, fileDrive.FileExtension),
 				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
@@ -280,7 +280,7 @@ func (s *service) GetPopup(ctx *abstraction.Context) (map[string]interface{}, er
 			"id": data.ID,
 			"file": map[string]interface{}{
 				"view":       "https://lh3.googleusercontent.com/d/" + data.File,
-				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink),
+				"view_saved": general.ConvertLinkToFileSaved(fileDrive.WebContentLink, fileDrive.Name, fileDrive.FileExtension),
 				"content":    fileDrive.WebContentLink,
 			},
 			"file_name":  data.FileName,
