@@ -360,6 +360,11 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 			}
 		}
 
+		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+
 		return nil
 	}); err != nil {
 		return nil, err
