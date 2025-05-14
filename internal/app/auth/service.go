@@ -93,15 +93,15 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
-		encodedLoginFrom := encoding.Encode(data.LoginFrom)
+		// encodedLoginFrom := encoding.Encode(data.LoginFrom)
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:        encryptedUserID,
-			RoleID:    encryptedUserRoleID,
-			DivisiID:  encryptedUserDivisiID,
-			Email:     encodedEmail,
-			LoginFrom: encodedLoginFrom,
-			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:       encryptedUserID,
+			RoleID:   encryptedUserRoleID,
+			DivisiID: encryptedUserDivisiID,
+			Email:    encodedEmail,
+			// LoginFrom: encodedLoginFrom,
+			Exp: time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()
@@ -144,10 +144,15 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 
 func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutRequest) (map[string]interface{}, error) {
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		data, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		userData := new(model.UserEntityModel)
 		userData.Context = ctx
 		userData.ID = ctx.Auth.ID
-		userData.LoginFrom = general.ProcessLogoutFrom(ctx.Auth.LoginFrom, payload.LogoutFrom)
+		userData.LoginFrom = general.ProcessLogoutFrom(data.LoginFrom, payload.LogoutFrom)
 		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -191,15 +196,15 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
-		encodedLoginFrom := encoding.Encode(data.LoginFrom)
+		// encodedLoginFrom := encoding.Encode(data.LoginFrom)
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:        encryptedUserID,
-			RoleID:    encryptedUserRoleID,
-			DivisiID:  encryptedUserDivisiID,
-			Email:     encodedEmail,
-			LoginFrom: encodedLoginFrom,
-			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:       encryptedUserID,
+			RoleID:   encryptedUserRoleID,
+			DivisiID: encryptedUserDivisiID,
+			Email:    encodedEmail,
+			// LoginFrom: encodedLoginFrom,
+			Exp: time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()

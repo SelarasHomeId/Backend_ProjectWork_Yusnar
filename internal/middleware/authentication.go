@@ -19,12 +19,12 @@ import (
 func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
-			id         int
-			role_id    int
-			divisi_id  int
-			email      string
-			login_from string
-			jwtKey     = config.Get().JWT.SecretKey
+			id        int
+			role_id   int
+			divisi_id int
+			email     string
+			// login_from string
+			jwtKey = config.Get().JWT.SecretKey
 		)
 		authToken := c.Request().Header.Get("Authorization")
 		if authToken == "" {
@@ -114,21 +114,19 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 
-		destructLoginFrom := claims["login_from"]
-		if destructLoginFrom == nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
-		if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
+		// destructLoginFrom := claims["login_from"]
+		// if destructLoginFrom == nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
+		// if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
 
 		// dbRedis := database.InitRedis()
 		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
 		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
-
 		// _, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
 		// _, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
-
 		// if errGetKeyWeb == redis.Nil {
 		// 	logrus.Infof("user %d not needed auto logout in web", id)
 		// } else if errGetKeyWeb != nil {
@@ -136,7 +134,6 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 		// } else {
 		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
 		// }
-
 		// if errGetKeyMobile == redis.Nil {
 		// 	logrus.Infof("user %d not needed auto logout in mobile", id)
 		// } else if errGetKeyMobile != nil {
@@ -147,11 +144,11 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 
 		cc := c.(*abstraction.Context)
 		cc.Auth = &abstraction.AuthContext{
-			ID:        id,
-			RoleID:    role_id,
-			DivisiID:  divisi_id,
-			Email:     email,
-			LoginFrom: login_from,
+			ID:       id,
+			RoleID:   role_id,
+			DivisiID: divisi_id,
+			Email:    email,
+			// LoginFrom: login_from,
 		}
 
 		return next(cc)
@@ -161,12 +158,12 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 func Logout(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
-			id         int
-			role_id    int
-			divisi_id  int
-			email      string
-			login_from string
-			jwtKey     = config.Get().JWT.SecretKey
+			id        int
+			role_id   int
+			divisi_id int
+			email     string
+			// login_from string
+			jwtKey = config.Get().JWT.SecretKey
 		)
 		authToken := c.Request().Header.Get("Authorization")
 		if authToken == "" {
@@ -244,21 +241,21 @@ func Logout(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 
-		destructLoginFrom := claims["login_from"]
-		if destructLoginFrom == nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
-		if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
+		// destructLoginFrom := claims["login_from"]
+		// if destructLoginFrom == nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
+		// if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
 
 		cc := c.(*abstraction.Context)
 		cc.Auth = &abstraction.AuthContext{
-			ID:        id,
-			RoleID:    role_id,
-			DivisiID:  divisi_id,
-			Email:     email,
-			LoginFrom: login_from,
+			ID:       id,
+			RoleID:   role_id,
+			DivisiID: divisi_id,
+			Email:    email,
+			// LoginFrom: login_from,
 		}
 
 		return next(cc)
@@ -268,12 +265,12 @@ func Logout(next echo.HandlerFunc) echo.HandlerFunc {
 func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var (
-			id         int
-			role_id    int
-			divisi_id  int
-			email      string
-			login_from string
-			jwtKey     = config.Get().JWT.SecretKey
+			id        int
+			role_id   int
+			divisi_id int
+			email     string
+			// login_from string
+			jwtKey = config.Get().JWT.SecretKey
 		)
 		authToken := c.Request().Header.Get("Authorization")
 		if authToken == "" {
@@ -342,21 +339,19 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 
-		destructLoginFrom := claims["login_from"]
-		if destructLoginFrom == nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
-		if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		}
+		// destructLoginFrom := claims["login_from"]
+		// if destructLoginFrom == nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
+		// if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// }
 
 		// dbRedis := database.InitRedis()
 		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
 		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
-
 		// _, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
 		// _, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
-
 		// if errGetKeyWeb == redis.Nil {
 		// 	logrus.Infof("user %d not needed auto logout in web", id)
 		// } else if errGetKeyWeb != nil {
@@ -364,7 +359,6 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 		// } else {
 		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
 		// }
-
 		// if errGetKeyMobile == redis.Nil {
 		// 	logrus.Infof("user %d not needed auto logout in mobile", id)
 		// } else if errGetKeyMobile != nil {
@@ -375,11 +369,11 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 
 		cc := c.(*abstraction.Context)
 		cc.Auth = &abstraction.AuthContext{
-			ID:        id,
-			RoleID:    role_id,
-			DivisiID:  divisi_id,
-			Email:     email,
-			LoginFrom: login_from,
+			ID:       id,
+			RoleID:   role_id,
+			DivisiID: divisi_id,
+			Email:    email,
+			// LoginFrom: login_from,
 		}
 
 		return next(cc)

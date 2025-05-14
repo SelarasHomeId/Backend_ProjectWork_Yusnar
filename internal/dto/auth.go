@@ -29,24 +29,24 @@ func (r RefreshTokenRequest) TokenClaims() (*modeltoken.TokenClaims, error) {
 		if jwtErrValidation, ok := err.(*jwt.ValidationError); ok {
 			c := token.Claims.(jwt.MapClaims)
 			return &modeltoken.TokenClaims{
-				ID:        c["id"].(string),
-				RoleID:    c["role_id"].(string),
-				DivisiID:  c["divisi_id"].(string),
-				Email:     c["email"].(string),
-				LoginFrom: c["login_from"].(string),
-				Exp:       int64(c["exp"].(float64)),
+				ID:       c["id"].(string),
+				RoleID:   c["role_id"].(string),
+				DivisiID: c["divisi_id"].(string),
+				Email:    c["email"].(string),
+				// LoginFrom: c["login_from"].(string),
+				Exp: int64(c["exp"].(float64)),
 			}, jwtErrValidation
 		}
 		return nil, jwt.NewValidationError("invalid_token", jwt.ValidationErrorMalformed)
 	}
 	c := token.Claims.(jwt.MapClaims)
 	return &modeltoken.TokenClaims{
-		ID:        c["id"].(string),
-		RoleID:    c["role_id"].(string),
-		DivisiID:  c["divisi_id"].(string),
-		Email:     c["email"].(string),
-		LoginFrom: c["login_from"].(string),
-		Exp:       int64(c["exp"].(float64)),
+		ID:       c["id"].(string),
+		RoleID:   c["role_id"].(string),
+		DivisiID: c["divisi_id"].(string),
+		Email:    c["email"].(string),
+		// LoginFrom: c["login_from"].(string),
+		Exp: int64(c["exp"].(float64)),
 	}, nil
 }
 
