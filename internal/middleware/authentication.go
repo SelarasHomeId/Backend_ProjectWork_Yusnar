@@ -1,24 +1,19 @@
 package middleware
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
 	"selarashomeid/internal/config"
-	"selarashomeid/pkg/database"
 	"selarashomeid/pkg/util/aescrypt"
 	"selarashomeid/pkg/util/encoding"
-	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"strconv"
 	"strings"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
 )
 
 func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
@@ -127,28 +122,28 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 
-		dbRedis := database.InitRedis()
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
+		// dbRedis := database.InitRedis()
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
 
-		_, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
-		_, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
+		// _, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
+		// _, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
 
-		if errGetKeyWeb == redis.Nil {
-			logrus.Infof("user %d not needed auto logout in web", id)
-		} else if errGetKeyWeb != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		} else {
-			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-		}
+		// if errGetKeyWeb == redis.Nil {
+		// 	logrus.Infof("user %d not needed auto logout in web", id)
+		// } else if errGetKeyWeb != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// } else {
+		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
+		// }
 
-		if errGetKeyMobile == redis.Nil {
-			logrus.Infof("user %d not needed auto logout in mobile", id)
-		} else if errGetKeyMobile != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		} else {
-			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-		}
+		// if errGetKeyMobile == redis.Nil {
+		// 	logrus.Infof("user %d not needed auto logout in mobile", id)
+		// } else if errGetKeyMobile != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// } else {
+		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
+		// }
 
 		cc := c.(*abstraction.Context)
 		cc.Auth = &abstraction.AuthContext{
@@ -355,28 +350,28 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 
-		dbRedis := database.InitRedis()
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
+		// dbRedis := database.InitRedis()
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(id, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(id, "mobile")
 
-		_, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
-		_, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
+		// _, errGetKeyWeb := dbRedis.Get(context.Background(), keyAutoLogoutWeb).Result()
+		// _, errGetKeyMobile := dbRedis.Get(context.Background(), keyAutoLogoutMobile).Result()
 
-		if errGetKeyWeb == redis.Nil {
-			logrus.Infof("user %d not needed auto logout in web", id)
-		} else if errGetKeyWeb != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		} else {
-			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-		}
+		// if errGetKeyWeb == redis.Nil {
+		// 	logrus.Infof("user %d not needed auto logout in web", id)
+		// } else if errGetKeyWeb != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// } else {
+		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
+		// }
 
-		if errGetKeyMobile == redis.Nil {
-			logrus.Infof("user %d not needed auto logout in mobile", id)
-		} else if errGetKeyMobile != nil {
-			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-		} else {
-			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-		}
+		// if errGetKeyMobile == redis.Nil {
+		// 	logrus.Infof("user %d not needed auto logout in mobile", id)
+		// } else if errGetKeyMobile != nil {
+		// 	return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		// } else {
+		// 	return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
+		// }
 
 		cc := c.(*abstraction.Context)
 		cc.Auth = &abstraction.AuthContext{

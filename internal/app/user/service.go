@@ -2,7 +2,6 @@ package contact
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"selarashomeid/internal/abstraction"
@@ -236,10 +235,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
-				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-				s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
-				s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+				// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+				// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+				// s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+				// s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 			} else {
 				if err = gomail.SendMail(userData.Email, "Account Unlocked for SelarasHomeId", general.ParseTemplateEmailToHtml("./assets/html/email/notif_unlocked_user.html", struct {
 					NAME  string
@@ -251,10 +250,10 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.UserUpdateReques
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
-				keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-				s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
-				s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
+				// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+				// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+				// s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
+				// s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
 			}
 		}
 
@@ -290,10 +289,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRe
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
-		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 
 		return nil
 	}); err != nil {
@@ -360,10 +359,10 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 			}
 		}
 
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
-		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 
 		return nil
 	}); err != nil {
@@ -424,10 +423,10 @@ func (s *service) ResetPassword(ctx *abstraction.Context, payload *dto.UserReset
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
-		s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
-		s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(userData.ID, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(userData.ID, "mobile")
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutWeb, 1, 0)
+		// s.DbRedis.Set(context.Background(), keyAutoLogoutMobile, 1, 0)
 
 		return nil
 	}); err != nil {

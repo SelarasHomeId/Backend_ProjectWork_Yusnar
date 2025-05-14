@@ -152,13 +152,13 @@ func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		keyAutoLogoutWeb := general.GenerateKeyAutoLogout(ctx.Auth.ID, "web")
-		keyAutoLogoutMobile := general.GenerateKeyAutoLogout(ctx.Auth.ID, "mobile")
-		if payload.LogoutFrom == "web" {
-			s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
-		} else {
-			s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
-		}
+		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(ctx.Auth.ID, "web")
+		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(ctx.Auth.ID, "mobile")
+		// if payload.LogoutFrom == "web" {
+		// 	s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
+		// } else {
+		// 	s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
+		// }
 
 		return nil
 	}); err != nil {
