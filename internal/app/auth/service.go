@@ -152,15 +152,19 @@ func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
+		loginFrom := ""
+		if data != nil {
+			loginFrom = data.LoginFrom
+		}
 		userData := new(model.UserEntityModel)
 		userData.Context = ctx
 		userData.ID = ctx.Auth.ID
-		userData.LoginFrom = general.ProcessLogoutFrom(data.LoginFrom, payload.LogoutFrom)
+		userData.LoginFrom = general.ProcessLogoutFrom(loginFrom, payload.LogoutFrom)
 		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		general.RemoveUUIDFromRedisArray(s.DbRedis, general.GenerateRedisKeyUserLogin(data.ID), ctx.Auth.UuidLogin)
+		general.RemoveUUIDFromRedisArray(s.DbRedis, general.GenerateRedisKeyUserLogin(ctx.Auth.ID), ctx.Auth.UuidLogin)
 		general.RemoveUUIDFromRedisArray(s.DbRedis, constant.REDIS_KEY_AUTO_LOGOUT, ctx.Auth.UuidLogin)
 
 		return nil
