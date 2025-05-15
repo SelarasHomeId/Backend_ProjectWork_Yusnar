@@ -194,7 +194,7 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
-		encodedUuidLogin := encoding.Encode(uuid.NewString())
+		encodedUuidLogin := encoding.Encode(ctx.Auth.UuidLogin)
 
 		tokenClaims := &modelToken.TokenClaims{
 			ID:        encryptedUserID,
@@ -334,6 +334,11 @@ func (s *service) ValidationResetPassword(ctx *abstraction.Context, payload *dto
 			LINK:      constant.BASE_URL,
 		})); err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
+		userLoginFrom := general.GetRedisUUIDArray(s.DbRedis, general.GenerateRedisKeyUserLogin(userData.ID))
+		for _, v := range userLoginFrom {
+			general.AppendUUIDToRedisArray(s.DbRedis, constant.REDIS_KEY_AUTO_LOGOUT, v)
 		}
 
 		return nil
