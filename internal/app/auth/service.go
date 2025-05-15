@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -93,15 +94,16 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
-		// encodedLoginFrom := encoding.Encode(data.LoginFrom)
+		uuidUserLogin := uuid.NewString()
+		encodedUuidLogin := encoding.Encode(uuidUserLogin)
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:       encryptedUserID,
-			RoleID:   encryptedUserRoleID,
-			DivisiID: encryptedUserDivisiID,
-			Email:    encodedEmail,
-			// LoginFrom: encodedLoginFrom,
-			Exp: time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:        encryptedUserID,
+			RoleID:    encryptedUserRoleID,
+			DivisiID:  encryptedUserDivisiID,
+			Email:     encodedEmail,
+			UuidLogin: encodedUuidLogin,
+			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()
@@ -116,6 +118,7 @@ func (s *service) Login(ctx *abstraction.Context, payload *dto.AuthLoginRequest)
 		if err := s.UserRepository.UpdateLoginFrom(ctx, userData).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
+		general.AppendUUIDToRedisArray(s.DbRedis, general.GenerateRedisKeyUserLogin(data.ID), uuidUserLogin)
 
 		return nil
 	}); err != nil {
@@ -157,13 +160,8 @@ func (s *service) Logout(ctx *abstraction.Context, payload *dto.AuthLogoutReques
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		// keyAutoLogoutWeb := general.GenerateKeyAutoLogout(ctx.Auth.ID, "web")
-		// keyAutoLogoutMobile := general.GenerateKeyAutoLogout(ctx.Auth.ID, "mobile")
-		// if payload.LogoutFrom == "web" {
-		// 	s.DbRedis.Del(context.Background(), keyAutoLogoutWeb)
-		// } else {
-		// 	s.DbRedis.Del(context.Background(), keyAutoLogoutMobile)
-		// }
+		general.RemoveUUIDFromRedisArray(s.DbRedis, general.GenerateRedisKeyUserLogin(data.ID), ctx.Auth.UuidLogin)
+		general.RemoveUUIDFromRedisArray(s.DbRedis, constant.REDIS_KEY_AUTO_LOGOUT, ctx.Auth.UuidLogin)
 
 		return nil
 	}); err != nil {
@@ -196,15 +194,15 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 		encodedEmail := encoding.Encode(data.Email)
-		// encodedLoginFrom := encoding.Encode(data.LoginFrom)
+		encodedUuidLogin := encoding.Encode(uuid.NewString())
 
 		tokenClaims := &modelToken.TokenClaims{
-			ID:       encryptedUserID,
-			RoleID:   encryptedUserRoleID,
-			DivisiID: encryptedUserDivisiID,
-			Email:    encodedEmail,
-			// LoginFrom: encodedLoginFrom,
-			Exp: time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			ID:        encryptedUserID,
+			RoleID:    encryptedUserRoleID,
+			DivisiID:  encryptedUserDivisiID,
+			Email:     encodedEmail,
+			UuidLogin: encodedUuidLogin,
+			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()

@@ -13,6 +13,8 @@ const (
 	REDIS_REQUEST_IP_KEYS      = "reset-password:ip:%s"
 	REDIS_REQUEST_MAX_ATTEMPTS = 5
 	REDIS_REQUEST_IP_EXPIRE    = 240
+	REDIS_KEY_USER_LOGIN       = "login_token_user_"
+	REDIS_KEY_AUTO_LOGOUT      = "user_auto_logout"
 
 	LINK_INSTAGRAM = "https://www.instagram.com/selarashome_id/"
 	LINK_TIKTOK    = "https://www.tiktok.com/@selarashomeid"

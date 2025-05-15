@@ -2,6 +2,7 @@ package general
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,6 +21,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
@@ -793,10 +795,6 @@ func EnsureFileExtension(filename, ext string) string {
 	return filename
 }
 
-func GenerateKeyAutoLogout(userId int, platform string) string {
-	return fmt.Sprintf("logout_user_%d_from_%s", userId, platform)
-}
-
 func GenerateInitial(name string) string {
 	words := strings.Fields(name)
 	if len(words) == 0 {
@@ -839,4 +837,44 @@ func CapitalizeEachWord(input string) string {
 		}
 	}
 	return strings.Join(words, " ")
+}
+
+func GenerateRedisKeyUserLogin(userId int) string {
+	return fmt.Sprintf("%s%d", constant.REDIS_KEY_USER_LOGIN, userId)
+}
+
+func GetRedisUUIDArray(client *redis.Client, key string) []string {
+	val, err := client.Get(context.Background(), key).Result()
+	if err != nil || val == "" {
+		return []string{}
+	}
+	return strings.Split(val, "/")
+}
+
+func AppendUUIDToRedisArray(client *redis.Client, key string, newUUID string) {
+	ctx := context.Background()
+	val, err := client.Get(ctx, key).Result()
+	if err != nil || val == "" {
+		client.Set(ctx, key, newUUID, 0)
+		return
+	}
+	updated := val + "/" + newUUID
+	client.Set(ctx, key, updated, 0)
+}
+
+func RemoveUUIDFromRedisArray(client *redis.Client, key string, targetUUID string) {
+	ctx := context.Background()
+	val, err := client.Get(ctx, key).Result()
+	if err != nil || val == "" {
+		return
+	}
+	uuids := strings.Split(val, "/")
+	var filtered []string
+	for _, uuid := range uuids {
+		if uuid != targetUUID && uuid != "" {
+			filtered = append(filtered, uuid)
+		}
+	}
+	newVal := strings.Join(filtered, "/")
+	client.Set(ctx, key, newVal, 0)
 }

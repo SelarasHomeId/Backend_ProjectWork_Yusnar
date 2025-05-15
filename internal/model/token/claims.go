@@ -13,24 +13,24 @@ import (
 )
 
 type TokenClaims struct {
-	ID       string `json:"id"`
-	RoleID   string `json:"role_id"`
-	DivisiID string `json:"divisi_id"`
-	Email    string `json:"email"`
-	// LoginFrom string `json:"login_from"`
-	Exp int64 `json:"exp"`
+	ID        string `json:"id"`
+	RoleID    string `json:"role_id"`
+	DivisiID  string `json:"divisi_id"`
+	Email     string `json:"email"`
+	UuidLogin string `json:"uuid_login"`
+	Exp       int64  `json:"exp"`
 
 	jwt.RegisteredClaims
 }
 
 func (c TokenClaims) AuthContext() (*abstraction.AuthContext, error) {
 	var (
-		id        int
-		role_id   int
-		divisi_id int
-		email     string
-		// login_from string
-		err error
+		id         int
+		role_id    int
+		divisi_id  int
+		email      string
+		uuid_login string
+		err        error
 
 		encryptionKey = config.Get().JWT.SecretKey
 	)
@@ -82,19 +82,19 @@ func (c TokenClaims) AuthContext() (*abstraction.AuthContext, error) {
 		return nil, errors.New("invalid_token")
 	}
 
-	// destructLoginFrom := c.LoginFrom
-	// if destructLoginFrom == "" {
-	// 	return nil, errors.New("invalid_token")
-	// }
-	// if login_from, err = encoding.Decode(fmt.Sprintf("%v", destructLoginFrom)); err != nil {
-	// 	return nil, errors.New("invalid_token")
-	// }
+	destructUuidLogin := c.UuidLogin
+	if destructUuidLogin == "" {
+		return nil, errors.New("invalid_token")
+	}
+	if uuid_login, err = encoding.Decode(fmt.Sprintf("%v", destructUuidLogin)); err != nil {
+		return nil, errors.New("invalid_token")
+	}
 
 	return &abstraction.AuthContext{
-		ID:       id,
-		RoleID:   role_id,
-		DivisiID: divisi_id,
-		Email:    email,
-		// LoginFrom: login_from,
+		ID:        id,
+		RoleID:    role_id,
+		DivisiID:  divisi_id,
+		Email:     email,
+		UuidLogin: uuid_login,
 	}, nil
 }
