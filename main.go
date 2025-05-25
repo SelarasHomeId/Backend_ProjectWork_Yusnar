@@ -12,6 +12,7 @@ import (
 	db "selarashomeid/pkg/database"
 	"selarashomeid/pkg/log"
 	"selarashomeid/pkg/ngrok"
+	"selarashomeid/pkg/ws"
 	"syscall"
 	"time"
 
@@ -42,8 +43,10 @@ func main() {
 
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	ws.InitCentrifugal(ctx, e, f)
 
 	go func() {
 		runNgrok := false

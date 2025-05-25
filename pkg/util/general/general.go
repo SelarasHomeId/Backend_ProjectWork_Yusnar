@@ -122,6 +122,24 @@ func IsToday(t time.Time) bool {
 	return t.Year() == now.Year() && t.Month() == now.Month() && t.Day() == now.Day()
 }
 
+func RandSeq(n int) string {
+	var letters = []rune("123456789abcdefghijklmnopqrstuvwxyz")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func StringInSlice(text string, data []string) bool {
+	for _, row := range data {
+		if row == text {
+			return true
+		}
+	}
+	return false
+}
+
 // generate random password
 func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minLowerCase int) string {
 	var password strings.Builder
@@ -202,7 +220,8 @@ func SanitizeString(input string) string {
 			r == '-' ||
 			r == '.' ||
 			r == ':' ||
-			r == '/' {
+			r == '/' ||
+			r == '@' {
 			return r
 		}
 		return -1
