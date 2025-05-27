@@ -31,6 +31,7 @@ func RedirectTo(c echo.Context, url string) error {
 func SendExcelData(c echo.Context, filename string, data bytes.Buffer) error {
 	c.Response().Header().Set(echo.HeaderContentType, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%s", filename))
+	c.Response().Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 	c.Response().Header().Set(echo.HeaderContentLength, fmt.Sprint(len(data.Bytes())))
 
 	return c.Blob(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", data.Bytes())
