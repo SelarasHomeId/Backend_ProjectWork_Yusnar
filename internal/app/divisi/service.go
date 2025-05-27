@@ -14,6 +14,7 @@ import (
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
+	"strings"
 
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
@@ -60,7 +61,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.DivisiCreateRequ
 		}
 
 		for _, v := range dataAllDivisi {
-			if *payload.Name == v.Name {
+			if strings.EqualFold(*payload.Name, v.Name) {
 				return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "divisi already exist")
 			}
 		}
@@ -127,10 +128,20 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.DivisiUpdateRequ
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "divisi not found")
 		}
 
+		dataAllDivisi, err := s.DivisiRepository.Find(ctx, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		newDivisiData := new(model.DivisiEntityModel)
 		newDivisiData.Context = ctx
 		newDivisiData.ID = payload.ID
 		if payload.Name != nil {
+			for _, v := range dataAllDivisi {
+				if strings.EqualFold(*payload.Name, v.Name) {
+					return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "divisi already exist")
+				}
+			}
 			newDivisiData.Name = *payload.Name
 		}
 

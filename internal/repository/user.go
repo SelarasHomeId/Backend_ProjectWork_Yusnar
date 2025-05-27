@@ -40,7 +40,7 @@ func (r *user) FindByEmail(ctx *abstraction.Context, email string) (*model.UserE
 
 	var data model.UserEntityModel
 	err := conn.
-		Where("email = ? AND is_delete = ?", email, false).
+		Where("LOWER(email) = LOWER(?) AND is_delete = ?", email, false).
 		Preload("Role").
 		Preload("Divisi").
 		First(&data).
