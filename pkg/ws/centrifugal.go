@@ -17,7 +17,6 @@ import (
 	"selarashomeid/pkg/util/trxmanager"
 
 	"github.com/centrifugal/centrifuge"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -44,11 +43,12 @@ func InitCentrifugal(ctx context.Context, e *echo.Echo, f *factory.Factory) {
 		logrus.Infof("users try connecting: %s", e.ClientID)
 		dataContext, err := middleware.JustValidateToken(e.Token)
 		if err != nil {
-			if err == jwt.ErrTokenExpired {
-				return centrifuge.ConnectReply{}, centrifuge.ErrorTokenExpired
+			if err.Code == http.StatusUnauthorized {
+				return centrifuge.ConnectReply{}, centrifuge.ErrorTokenExpired // 109 - token expired
+			} else {
+				logrus.Infof("error on connecting: %s", err.Error())
+				return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken // 3500 - invalid token
 			}
-			logrus.Infof("error on connecting: %s", err.Error())
-			return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
 		}
 		return centrifuge.ConnectReply{
 			Credentials: &centrifuge.Credentials{
@@ -144,8 +144,8 @@ func InitCentrifugal(ctx context.Context, e *echo.Echo, f *factory.Factory) {
 			User:     config.Get().Redis.RedisUser,
 			Password: config.Get().Redis.RedisPassword,
 		},
-		//{Address: "localhost:6380"},
 	}
+
 	var redisShards []*centrifuge.RedisShard
 	for _, redisConf := range redisShardConfigs {
 		redisShard, err := centrifuge.NewRedisShard(NodeCentrifugal, redisConf)
@@ -156,13 +156,6 @@ func InitCentrifugal(ctx context.Context, e *echo.Echo, f *factory.Factory) {
 	}
 
 	broker, err := centrifuge.NewRedisBroker(NodeCentrifugal, centrifuge.RedisBrokerConfig{
-		// Use reasonably large expiration interval for stream meta key,
-		// much bigger than maximum HistoryLifetime value in Node config.
-		// This way stream metadata will expire, in some cases you may want
-		// to prevent its expiration setting this to zero value.
-		// HistoryMetaTTL: 7 * 24 * time.Hour,
-
-		// And configure a couple of shards to use.
 		Shards: redisShards,
 	})
 	if err != nil {
@@ -278,16 +271,6 @@ func PublishNotification(usersId int, db *gorm.DB, ctx *abstraction.Context) err
 		}); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func PublishNotificationCustom(channel string, data []byte) error {
-
-	_, err := NodeCentrifugal.Publish(channel, data)
-	if err != nil {
-		logrus.Errorf("error publishing: %v", err)
 	}
 
 	return nil

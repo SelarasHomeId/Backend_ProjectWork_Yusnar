@@ -351,7 +351,7 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func JustValidateToken(tokenString string) (*abstraction.Context, error) {
+func JustValidateToken(tokenString string) (*abstraction.Context, *response.MetaError) {
 	var (
 		id         int
 		role_id    int
@@ -363,7 +363,7 @@ func JustValidateToken(tokenString string) (*abstraction.Context, error) {
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method :%v", token.Header["alg"])
+			return nil, response.ErrorBuilder(http.StatusUnauthorized, fmt.Errorf("unexpected signing method :%v", token.Header["alg"]), "error unexpected signing method")
 		}
 		return []byte(jwtKey), nil
 	})
