@@ -19,6 +19,7 @@ import (
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
+	"selarashomeid/pkg/ws"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -249,6 +250,10 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 				modelNotifikasi.UserId = v.ID
 				modelNotifikasi.TaskId = constant.BLANK_TASK_ID
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+
+				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}

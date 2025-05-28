@@ -13,6 +13,7 @@ import (
 	"selarashomeid/pkg/util/general"
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
+	"selarashomeid/pkg/ws"
 
 	"gorm.io/gorm"
 )
@@ -112,6 +113,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+
+				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
 			}
 		}
 
@@ -126,6 +131,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+
+			if err := ws.PublishNotification(taskData.CreateBy.ID, s.DB, ctx); err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		for _, v := range assignedMember {
@@ -138,6 +147,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 				modelNotifikasi.UserId = v.ID
 				modelNotifikasi.TaskId = taskData.ID
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+
+				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -267,6 +280,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
+
+				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
 			}
 		}
 
@@ -281,6 +298,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
+
+			if err := ws.PublishNotification(taskData.CreateBy.ID, s.DB, ctx); err != nil {
+				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+			}
 		}
 
 		for _, v := range assignedMember {
@@ -293,6 +314,10 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 				modelNotifikasi.UserId = v.ID
 				modelNotifikasi.TaskId = taskData.ID
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+				}
+
+				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
