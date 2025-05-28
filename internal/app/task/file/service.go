@@ -145,7 +145,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -163,7 +163,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 
-			if err := ws.PublishNotification(taskData.CreateBy.ID, s.DB, ctx); err != nil {
+			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 		}
@@ -181,7 +181,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskFileCreateRe
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -328,7 +328,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteBy
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -346,7 +346,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteBy
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 
-			if err := ws.PublishNotification(taskData.CreateBy.ID, s.DB, ctx); err != nil {
+			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
 		}
@@ -364,7 +364,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskFileDeleteBy
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -462,7 +462,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 
-					if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 				}
@@ -482,7 +482,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(taskData.CreateBy.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
@@ -502,7 +502,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskFileUpdateRe
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 
-					if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
 				}

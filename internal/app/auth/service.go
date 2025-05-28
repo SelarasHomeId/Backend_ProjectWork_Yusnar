@@ -253,7 +253,7 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 
-				if err := ws.PublishNotification(v.ID, s.DB, ctx); err != nil {
+				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 			}
