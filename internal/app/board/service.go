@@ -48,6 +48,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	boardData := new(model.BoardEntityModel)
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
@@ -104,10 +105,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -116,6 +114,13 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message":      "success create!",
 		"id":           boardData.ID,
@@ -127,6 +132,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 }
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -188,10 +194,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -199,12 +202,20 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success delete!",
 	}, nil
 }
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -285,10 +296,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v.ID)
 				}
 			}
 		}
@@ -297,6 +305,13 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success update!",
 	}, nil

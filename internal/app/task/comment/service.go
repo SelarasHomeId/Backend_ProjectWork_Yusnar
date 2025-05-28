@@ -46,6 +46,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		taskData, err := s.TaskRepository.FindById(ctx, payload.TaskId)
 		if err != nil && err.Error() != "record not found" {
@@ -113,10 +114,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -131,10 +129,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-
-			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
+			sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 		}
 
 		for _, v := range assignedMember {
@@ -149,10 +144,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -160,6 +152,13 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success create!",
 	}, nil
@@ -214,6 +213,7 @@ func (s *service) FindByTaskId(ctx *abstraction.Context, payload *dto.TaskCommen
 }
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDeleteByIDRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		taskCommentData, err := s.TaskCommentRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -280,10 +280,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -298,10 +295,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-
-			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
+			sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 		}
 
 		for _, v := range assignedMember {
@@ -316,10 +310,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -327,6 +318,13 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success delete!",
 	}, nil

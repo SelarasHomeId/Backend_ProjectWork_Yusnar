@@ -47,6 +47,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -80,10 +81,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateR
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -91,6 +89,13 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateR
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success create!",
 	}, nil
@@ -146,6 +151,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskLabelFindB
 }
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskLabelUpdateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -198,10 +204,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskLabelUpdateR
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v.ID)
 				}
 			}
 		}
@@ -210,12 +213,20 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskLabelUpdateR
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success update!",
 	}, nil
 }
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskLabelDeleteByIDRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -255,10 +266,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskLabelDeleteB
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -266,6 +274,13 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskLabelDeleteB
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success delete!",
 	}, nil

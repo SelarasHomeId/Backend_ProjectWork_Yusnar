@@ -305,6 +305,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.UserDeleteByIDRe
 }
 
 func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChangePasswordRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		if ctx.Auth.ID != payload.ID {
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "this user is not permitted")
@@ -357,10 +358,7 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -373,6 +371,13 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success change password!",
 	}, nil

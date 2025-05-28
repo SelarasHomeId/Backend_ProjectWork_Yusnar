@@ -226,6 +226,7 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 }
 
 func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto.AuthSendEmailForgotPasswordRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		data, err := s.UserRepository.FindByEmail(ctx, payload.Email)
 		if err != nil && err.Error() != "record not found" {
@@ -252,10 +253,7 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -283,6 +281,12 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 		return nil
 	}); err != nil {
 		return nil, err
+	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
 	}
 
 	return map[string]interface{}{

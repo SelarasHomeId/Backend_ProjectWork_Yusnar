@@ -58,6 +58,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCreateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		taskChecklistData, err := s.TaskChecklistRepository.FindById(ctx, payload.TaskChecklistId)
 		if err != nil && err.Error() != "record not found" {
@@ -132,10 +133,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -150,10 +148,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-
-			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
+			sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 		}
 
 		for _, v := range assignedMember {
@@ -168,10 +163,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -183,6 +175,13 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ChecklistItemCre
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success create!",
 	}, nil
@@ -255,6 +254,7 @@ func (s *service) FindByTaskChecklistId(ctx *abstraction.Context, payload *dto.C
 }
 
 func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpdateRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -373,10 +373,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v)
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s ditambahkan ke item (%s)", general.FormatNamesFromArray(userAddedArr), checklistItemData.Title))
 			}
@@ -404,10 +401,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v)
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s dikeluarkan dari item (%s)", general.FormatNamesFromArray(userRemovedArr), checklistItemData.Title))
 			}
@@ -476,10 +470,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v.ID)
 				}
 			}
 		}
@@ -496,10 +487,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 			}
 		}
 
@@ -516,10 +504,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v.ID)
 				}
 			}
 		}
@@ -546,10 +531,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 					}
-
-					if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-					}
+					sendNotifTo = append(sendNotifTo, v.ID)
 				}
 			}
 		}
@@ -564,12 +546,20 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.ChecklistItemUpd
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success update!",
 	}, nil
 }
 
 func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDeleteByIDRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -663,10 +653,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -681,10 +668,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-
-			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
+			sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 		}
 
 		for _, v := range assignedMember {
@@ -699,10 +683,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -727,10 +708,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -742,12 +720,20 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.ChecklistItemDel
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success delete!",
 	}, nil
 }
 
 func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.ChecklistItemConvertToTaskRequest) (map[string]interface{}, error) {
+	var sendNotifTo []int = nil
 	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		checklistItemData, err := s.ChecklistItemRepository.FindById(ctx, payload.ID)
 		if err != nil && err.Error() != "record not found" {
@@ -865,10 +851,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -883,10 +866,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 			if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
-
-			if err := ws.PublishNotificationWithoutTransaction(taskData.CreateBy.ID, s.DB, ctx); err != nil {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
+			sendNotifTo = append(sendNotifTo, taskData.CreateBy.ID)
 		}
 
 		for _, v := range assignedMember {
@@ -901,10 +881,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -929,10 +906,7 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 				if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
 					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
-
-				if err := ws.PublishNotificationWithoutTransaction(v.ID, s.DB, ctx); err != nil {
-					return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-				}
+				sendNotifTo = append(sendNotifTo, v.ID)
 			}
 		}
 
@@ -964,6 +938,13 @@ func (s *service) ConvertToTask(ctx *abstraction.Context, payload *dto.Checklist
 	}); err != nil {
 		return nil, err
 	}
+
+	for _, v := range sendNotifTo {
+		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
+			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+	}
+
 	return map[string]interface{}{
 		"message": "success convert!",
 	}, nil
