@@ -312,3 +312,21 @@ func PublishNotificationWithoutTransaction(usersId int, db *gorm.DB, ctx *abstra
 
 	return nil
 }
+
+// func GetUnreadNotification(usersId string, cpfId string, db *gorm.DB) (map[string]interface{}, error) {
+
+// 	data := make(map[string]interface{})
+// 	err := db.Table("unread_messages").
+// 		Select("count").
+// 		Where("users_id = ? AND cpf_id = ?", usersId, cpfId).
+// 		Find(&data).Error
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	if data["count"] == nil {
+// 		data["count"] = 0
+// 	}
+
+// 	return data, nil
+// }
