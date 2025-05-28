@@ -217,7 +217,7 @@ func GetNotification(usersId int, db *gorm.DB) (map[string]interface{}, error) {
 
 	data := make(map[string]interface{})
 	err := db.Table("notifikasi").
-		Select("count(*)").
+		Select("COUNT(*) AS count").
 		Where("user_id = ? AND is_read = ?", usersId, false).
 		Find(&data).Error
 	if err != nil {
@@ -243,7 +243,7 @@ func PublishNotification(usersId int, db *gorm.DB, ctx *abstraction.Context) err
 
 			data := make(map[string]interface{})
 			err := db.Table("notifikasi").
-				Select("count(*)").
+				Select("COUNT(*) AS count").
 				Where("user_id = ? AND is_read = ?", usersId, false).
 				Find(&data).Error
 			if err != nil {
@@ -283,7 +283,7 @@ func PublishNotificationWithoutTransaction(usersId int, db *gorm.DB, ctx *abstra
 	if check {
 		data := make(map[string]interface{})
 		err := db.Table("notifikasi").
-			Select("count(*)").
+			Select("COUNT(*) AS count").
 			Where("user_id = ? AND is_read = ?", usersId, false).
 			Find(&data).Error
 		if err != nil {
