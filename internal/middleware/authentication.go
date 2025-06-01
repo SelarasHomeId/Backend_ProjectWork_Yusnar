@@ -263,12 +263,12 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 		tokenString := strings.Replace(authToken, "Bearer ", "", -1)
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method :%v", token.Header["alg"])
 			}
 			return []byte(jwtKey), nil
-		})
+		}, jwt.WithoutClaimsValidation())
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
@@ -332,10 +332,8 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 
 		dbRedis := database.InitRedis()
 		userMustLogout := general.GetRedisUUIDArray(dbRedis, constant.REDIS_KEY_AUTO_LOGOUT)
-		for _, v := range userMustLogout {
-			if v == uuid_login {
-				return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-			}
+		if slices.Contains(userMustLogout, uuid_login) {
+			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
 		}
 
 		cc := c.(*abstraction.Context)
