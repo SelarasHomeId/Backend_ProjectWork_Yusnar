@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	"slices"
+
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/labstack/echo/v4"
 )
@@ -117,10 +119,8 @@ func Authentication(next echo.HandlerFunc) echo.HandlerFunc {
 
 		dbRedis := database.InitRedis()
 		userMustLogout := general.GetRedisUUIDArray(dbRedis, constant.REDIS_KEY_AUTO_LOGOUT)
-		for _, v := range userMustLogout {
-			if v == uuid_login {
-				return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
-			}
+		if slices.Contains(userMustLogout, uuid_login) {
+			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
 		}
 
 		cc := c.(*abstraction.Context)

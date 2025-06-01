@@ -90,7 +90,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskLabelCreateR
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -214,7 +214,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskLabelUpdateR
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -275,7 +275,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskLabelDeleteB
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

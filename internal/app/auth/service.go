@@ -241,7 +241,7 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if data.RoleId != constant.ROLE_ID_ADMIN {
+		if data.Role.ID != constant.ROLE_ID_ADMIN {
 			for _, v := range userAdmin {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
@@ -283,7 +283,7 @@ func (s *service) SendEmailForgotPassword(ctx *abstraction.Context, payload *dto
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

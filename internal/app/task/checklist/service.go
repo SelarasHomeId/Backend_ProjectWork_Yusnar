@@ -114,7 +114,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCre
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			modelNotifikasi := new(model.NotifikasiEntityModel)
 			modelNotifikasi.Context = ctx
 			modelNotifikasi.Title = fmt.Sprintf("%s menambahkan checklist pada tugas yang anda buat", userLogin.Name)
@@ -129,7 +129,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCre
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan checklist pada tugas (%s)", userLogin.Name, taskData.Title)
@@ -153,7 +153,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskChecklistCre
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -341,7 +341,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskChecklistUpd
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			for _, v := range messageNotif {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
@@ -358,7 +358,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskChecklistUpd
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx
@@ -386,7 +386,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskChecklistUpd
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -484,7 +484,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			modelNotifikasi := new(model.NotifikasiEntityModel)
 			modelNotifikasi.Context = ctx
 			modelNotifikasi.Title = fmt.Sprintf("%s menghaous checklist pada tugas yang anda buat", userLogin.Name)
@@ -499,7 +499,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menghapus checklist pada tugas (%s)", userLogin.Name, taskData.Title)
@@ -523,7 +523,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskChecklistDel
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

@@ -115,7 +115,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.BoardCreateReque
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -203,7 +203,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.BoardDeleteByIDR
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -306,7 +306,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.BoardUpdateReque
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

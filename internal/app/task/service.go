@@ -166,7 +166,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCreateReques
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -258,7 +258,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			modelNotifikasi := new(model.NotifikasiEntityModel)
 			modelNotifikasi.Context = ctx
 			modelNotifikasi.Title = fmt.Sprintf("Tugas yang anda buat (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
@@ -273,7 +273,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("Tugas (%s) telah dihapus oleh %s", taskData.Title, userLogin.Name)
@@ -297,7 +297,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -578,17 +578,19 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					}
 				}
 				for _, v := range userAddedIdArr {
-					modelNotifikasi := new(model.NotifikasiEntityModel)
-					modelNotifikasi.Context = ctx
-					modelNotifikasi.Title = fmt.Sprintf("Anda telah ditambahkan ke tugas (%s) oleh %s", taskData.Title, userLogin.Name)
-					modelNotifikasi.Message = "Klik untuk melihat detail tugas"
-					modelNotifikasi.IsRead = false
-					modelNotifikasi.UserId = v
-					modelNotifikasi.TaskId = taskData.ID
-					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					if v != userLogin.ID {
+						modelNotifikasi := new(model.NotifikasiEntityModel)
+						modelNotifikasi.Context = ctx
+						modelNotifikasi.Title = fmt.Sprintf("Anda telah ditambahkan ke tugas (%s) oleh %s", taskData.Title, userLogin.Name)
+						modelNotifikasi.Message = "Klik untuk melihat detail tugas"
+						modelNotifikasi.IsRead = false
+						modelNotifikasi.UserId = v
+						modelNotifikasi.TaskId = taskData.ID
+						if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+							return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+						}
+						sendNotifTo = append(sendNotifTo, v)
 					}
-					sendNotifTo = append(sendNotifTo, v)
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s ditambahkan ke tugas", general.FormatNamesFromArray(userAddedArr)))
 			}
@@ -606,17 +608,19 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 					}
 				}
 				for _, v := range userRemovedIdArr {
-					modelNotifikasi := new(model.NotifikasiEntityModel)
-					modelNotifikasi.Context = ctx
-					modelNotifikasi.Title = fmt.Sprintf("Anda telah dikeluarkan dari tugas (%s) oleh %s", taskData.Title, userLogin.Name)
-					modelNotifikasi.Message = "Hubungi administrator anda"
-					modelNotifikasi.IsRead = false
-					modelNotifikasi.UserId = v
-					modelNotifikasi.TaskId = constant.BLANK_TASK_ID
-					if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
-						return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+					if v != userLogin.ID {
+						modelNotifikasi := new(model.NotifikasiEntityModel)
+						modelNotifikasi.Context = ctx
+						modelNotifikasi.Title = fmt.Sprintf("Anda telah dikeluarkan dari tugas (%s) oleh %s", taskData.Title, userLogin.Name)
+						modelNotifikasi.Message = "Hubungi administrator anda"
+						modelNotifikasi.IsRead = false
+						modelNotifikasi.UserId = v
+						modelNotifikasi.TaskId = constant.BLANK_TASK_ID
+						if err := s.NotifikasiRepository.Create(ctx, modelNotifikasi).Error; err != nil {
+							return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+						}
+						sendNotifTo = append(sendNotifTo, v)
 					}
-					sendNotifTo = append(sendNotifTo, v)
 				}
 				messageNotif = append(messageNotif, fmt.Sprintf("User %s dikeluarkan dari tugas", general.FormatNamesFromArray(userRemovedArr)))
 			}
@@ -804,7 +808,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			for _, v := range messageNotif {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
@@ -821,7 +825,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				for _, d := range messageNotif {
 					modelNotifikasi := new(model.NotifikasiEntityModel)
 					modelNotifikasi.Context = ctx
@@ -855,7 +859,7 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

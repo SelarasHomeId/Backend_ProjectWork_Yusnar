@@ -897,3 +897,16 @@ func RemoveUUIDFromRedisArray(client *redis.Client, key string, targetUUID strin
 	newVal := strings.Join(filtered, "/")
 	client.Set(ctx, key, newVal, 0)
 }
+
+func RemoveDuplicateArrayInt(input []int) []int {
+	seen := make(map[int]bool)
+	var result []int
+
+	for _, v := range input {
+		if !seen[v] {
+			seen[v] = true
+			result = append(result, v)
+		}
+	}
+	return result
+}

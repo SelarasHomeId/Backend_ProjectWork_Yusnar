@@ -319,6 +319,11 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 			return response.ErrorBuilder(http.StatusBadRequest, errors.New("bad_request"), "user not found")
 		}
 
+		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
+		if err != nil && err.Error() != "record not found" {
+			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		}
+
 		if err = bcrypt.CompareHashAndPassword([]byte(userData.Password), []byte(payload.OldPassword)); err != nil {
 			return response.ErrorBuilder(http.StatusBadRequest, err, "old password is wrong")
 		}
@@ -342,11 +347,6 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 		}
 
 		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
-			userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
-			if err != nil && err.Error() != "record not found" {
-				return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
-			}
-
 			for _, v := range userAdmin {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
@@ -372,7 +372,7 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}

@@ -118,7 +118,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			modelNotifikasi := new(model.NotifikasiEntityModel)
 			modelNotifikasi.Context = ctx
 			modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas yang anda buat", userLogin.Name)
@@ -133,7 +133,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menambahkan komentar pada tugas (%s)", userLogin.Name, taskData.Title)
@@ -153,7 +153,7 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.TaskCommentCreat
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -284,7 +284,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 			}
 		}
 
-		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN {
+		if taskData.CreateBy.RoleId != constant.ROLE_ID_ADMIN && taskData.CreateBy.ID != userLogin.ID {
 			modelNotifikasi := new(model.NotifikasiEntityModel)
 			modelNotifikasi.Context = ctx
 			modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas yang anda buat", userLogin.Name)
@@ -299,7 +299,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 		}
 
 		for _, v := range assignedMember {
-			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID {
+			if v.Role.ID != constant.ROLE_ID_ADMIN && v.ID != taskData.CreateBy.ID && v.ID != userLogin.ID {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
 				modelNotifikasi.Title = fmt.Sprintf("%s menghapus komentar pada tugas (%s)", userLogin.Name, taskData.Title)
@@ -319,7 +319,7 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskCommentDelet
 		return nil, err
 	}
 
-	for _, v := range sendNotifTo {
+	for _, v := range general.RemoveDuplicateArrayInt(sendNotifTo) {
 		if err := ws.PublishNotificationWithoutTransaction(v, s.DB, ctx); err != nil {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
