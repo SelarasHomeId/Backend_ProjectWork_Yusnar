@@ -263,7 +263,7 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 		tokenString := strings.Replace(authToken, "Bearer ", "", -1)
-		token, err := jwt.ParseWithClaims(tokenString, &jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method :%v", token.Header["alg"])
 			}
