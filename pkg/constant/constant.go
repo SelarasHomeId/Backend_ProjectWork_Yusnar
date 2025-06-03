@@ -16,7 +16,7 @@ const (
 	REDIS_KEY_USER_LOGIN       = "login_token_user_"
 	REDIS_KEY_AUTO_LOGOUT      = "user_auto_logout"
 	REDIS_KEY_REFRESH_TOKEN    = "refresh-token:%s"
-	REDIS_MAX_REFRESH_TOKEN    = 7
+	REDIS_MAX_REFRESH_TOKEN    = 30
 
 	LINK_INSTAGRAM = "https://www.instagram.com/selarashome_id/"
 	LINK_TIKTOK    = "https://www.tiktok.com/@selarashomeid"
