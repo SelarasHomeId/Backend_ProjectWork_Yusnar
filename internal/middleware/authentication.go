@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -333,6 +334,16 @@ func RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 		dbRedis := database.InitRedis()
 		userMustLogout := general.GetRedisUUIDArray(dbRedis, constant.REDIS_KEY_AUTO_LOGOUT)
 		if slices.Contains(userMustLogout, uuid_login) {
+			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
+		}
+
+		keysRefreshToken := fmt.Sprintf(constant.REDIS_KEY_REFRESH_TOKEN, uuid_login)
+		value := dbRedis.Incr(context.Background(), keysRefreshToken)
+		if value.Err() != nil {
+			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
+		}
+		if value.Val() > constant.REDIS_MAX_REFRESH_TOKEN {
+			dbRedis.Del(context.Background(), keysRefreshToken)
 			return response.ErrorBuilder(http.StatusUnprocessableEntity, errors.New("unprocessable"), "expired_token").SendError(c)
 		}
 

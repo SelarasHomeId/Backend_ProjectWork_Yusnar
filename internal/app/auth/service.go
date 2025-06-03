@@ -207,7 +207,7 @@ func (s *service) RefreshToken(ctx *abstraction.Context) (map[string]interface{}
 			DivisiID:  encryptedUserDivisiID,
 			Email:     encodedEmail,
 			UuidLogin: encodedUuidLogin,
-			Exp:       time.Now().Add(time.Duration(1 * time.Hour)).Unix(),
+			Exp:       time.Now().Add(time.Duration(24 * time.Hour)).Unix(),
 		}
 		authToken := modelToken.NewAuthToken(tokenClaims)
 		token, err = authToken.Token()

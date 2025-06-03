@@ -346,7 +346,7 @@ func (s *service) ChangePassword(ctx *abstraction.Context, payload *dto.UserChan
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
 
-		if ctx.Auth.RoleID != constant.ROLE_ID_ADMIN {
+		if userData.Role.ID != constant.ROLE_ID_ADMIN {
 			for _, v := range userAdmin {
 				modelNotifikasi := new(model.NotifikasiEntityModel)
 				modelNotifikasi.Context = ctx
