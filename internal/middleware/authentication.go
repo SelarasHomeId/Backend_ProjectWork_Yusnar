@@ -155,23 +155,12 @@ func Logout(next echo.HandlerFunc) echo.HandlerFunc {
 			return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
 		}
 		tokenString := strings.Replace(authToken, "Bearer ", "", -1)
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method :%v", token.Header["alg"])
 			}
 			return []byte(jwtKey), nil
-		})
-		if token == nil || !token.Valid || err != nil {
-			if errJWT, ok := err.(*jwt.ValidationError); ok {
-				if errJWT.Errors == jwt.ValidationErrorExpired {
-					return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), errJWT.Error()).SendError(c)
-				} else {
-					return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-				}
-			} else {
-				return response.ErrorBuilder(http.StatusUnauthorized, errors.New("unauthorized"), "invalid_token").SendError(c)
-			}
-		}
+		}, jwt.WithoutClaimsValidation())
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
