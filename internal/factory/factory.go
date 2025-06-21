@@ -19,7 +19,6 @@ type Factory struct {
 
 	GDrive GoogleDrive
 
-	// repository
 	Repository_initiated
 }
 
