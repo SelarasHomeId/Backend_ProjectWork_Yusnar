@@ -29,3 +29,7 @@ type BannerUpdatePopupRequest struct {
 type BannerSetPopupRequest struct {
 	Set string `param:"set" validate:"required"`
 }
+
+type BannerDeleteCustomFileByIDRequest struct {
+	ID string `param:"id" validate:"required"`
+}

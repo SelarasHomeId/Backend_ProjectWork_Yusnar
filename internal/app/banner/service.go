@@ -29,6 +29,7 @@ type Service interface {
 	GetPopup(ctx *abstraction.Context) (map[string]interface{}, error)
 	UpdatePopup(ctx *abstraction.Context, payload *dto.BannerUpdatePopupRequest) (map[string]interface{}, error)
 	SetPopup(ctx *abstraction.Context, payload *dto.BannerSetPopupRequest) (map[string]interface{}, error)
+	DeleteCustomFile(ctx *abstraction.Context, payload *dto.BannerDeleteCustomFileByIDRequest) (map[string]interface{}, error)
 }
 
 type service struct {
@@ -400,5 +401,21 @@ func (s *service) SetPopup(ctx *abstraction.Context, payload *dto.BannerSetPopup
 	}
 	return map[string]interface{}{
 		"message": fmt.Sprintf("success set popup %s", payload.Set),
+	}, nil
+}
+
+func (s *service) DeleteCustomFile(ctx *abstraction.Context, payload *dto.BannerDeleteCustomFileByIDRequest) (map[string]interface{}, error) {
+	if err := trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
+		err := gdrive.DeleteFile(s.sDrive, payload.ID)
+		if err != nil {
+			return response.ErrorBuilder(http.StatusBadRequest, err, "bad_request")
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return map[string]interface{}{
+		"message": "success delete file gdrive!",
 	}, nil
 }
