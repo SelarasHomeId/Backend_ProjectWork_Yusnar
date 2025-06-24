@@ -55,7 +55,13 @@ func InitFolder(service *drive.Service, folder string, parentId string) (*drive.
 		logrus.Infof("Folder %s created!", folder)
 		return folderCreated, nil
 	} else {
-		logrus.Infof("Folder %s ready!", folder)
+		query := fmt.Sprintf("'%s' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'", folderUsed.Id)
+		fileList, err := service.Files.List().Q(query).Fields("files(id)").Do()
+		if err != nil {
+			logrus.Printf("Cannot list files in folder: %v\n", err)
+		} else {
+			logrus.Infof("Folder %s ready! Contains %d file(s).", folder, len(fileList.Files))
+		}
 		return folderUsed, nil
 	}
 }
