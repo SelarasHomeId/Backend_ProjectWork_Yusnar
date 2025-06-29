@@ -13,11 +13,9 @@ func (h *handler) Route(v *echo.Group) {
 	v.PUT("/:id", h.Update, middleware.Authentication)
 	v.DELETE("/:id", h.Delete, middleware.Authentication)
 
-	// popup
 	v.GET("/popup", h.GetPopup)
 	v.PUT("/popup/:id", h.UpdatePopup, middleware.Authentication)
 	v.PATCH("/popup/:set", h.SetPopup, middleware.Authentication)
 
-	// for clear data via api
 	v.DELETE("/delete_custom_file/:id", h.DeleteCustomFile)
 }

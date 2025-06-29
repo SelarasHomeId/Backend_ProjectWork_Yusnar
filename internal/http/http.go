@@ -26,21 +26,18 @@ import (
 )
 
 func Init(e *echo.Echo, f *factory.Factory) {
-	// index
+
 	e.GET("/", func(c echo.Context) error {
 		message := fmt.Sprintf("Hello there, welcome to app %s version %s.", config.Get().App.App, config.Get().App.Version)
 		return c.String(http.StatusOK, message)
 	})
 
-	// docs
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
-	// static
 	e.Static("/images", constant.PATH_ASSETS_IMAGES)
 	e.Static("/share", constant.PATH_SHARE)
 	e.Static("/file_saved", constant.PATH_FILE_SAVED)
 
-	// routes
 	test.NewHandler(f).Route(e.Group("/test"))
 	banner.NewHandler(f).Route(e.Group("/banner"))
 	auth.NewHandler(f).Route(e.Group("/auth"))
