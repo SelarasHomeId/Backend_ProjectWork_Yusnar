@@ -1320,7 +1320,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 		}
 
 		sheetProject := "Project Info"
-		ProcessProjectToExcel(s, ctx, f, sheetProject, nil, project, dataBoard)
+		ProcessProjectToExcel(s, ctx, f, sheetProject, nil, project, dataBoard) // process project to excel
 		if err != nil {
 			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -1336,7 +1336,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 			}
 
 			sheetBoard := fmt.Sprintf("%s (%d)", board.Name, board.TaskTotal)
-			err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask)
+			err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
 			if err != nil {
 				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -1361,7 +1361,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 		}
 
 		sheetBoard := fmt.Sprintf("%s (%d)", board.Name, board.TaskTotal)
-		err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask)
+		err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
 		if err != nil {
 			return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 		}
@@ -1390,7 +1390,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 			}
 
 			sheetProject := workspace.Name
-			ProcessProjectToExcel(s, ctx, f, sheetProject, workspace, project, dataBoard)
+			ProcessProjectToExcel(s, ctx, f, sheetProject, workspace, project, dataBoard) // process project to excel
 			if err != nil {
 				return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 			}
@@ -1406,7 +1406,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 				}
 
 				sheetBoard := fmt.Sprintf("%s - %s (%d)", general.GenerateInitial(workspace.Name), board.Name, board.TaskTotal)
-				err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask)
+				err = ProcessTaskToExcel(s, ctx, f, sheetBoard, dataTask) // process task to excel
 				if err != nil {
 					return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}

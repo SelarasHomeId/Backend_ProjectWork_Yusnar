@@ -115,7 +115,10 @@ func EndOfDay(now time.Time) time.Time {
 }
 
 func IsToday(t time.Time) bool {
+	// Dapatkan tanggal hari ini
 	now := NowLocal()
+
+	// Bandingkan tahun, bulan, dan hari
 	return t.Year() == now.Year() && t.Month() == now.Month() && t.Day() == now.Day()
 }
 
@@ -137,6 +140,7 @@ func StringInSlice(text string, data []string) bool {
 	return false
 }
 
+// generate random password
 func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minLowerCase int) string {
 	var password strings.Builder
 	var lowerCharSet string = "abcdedfghijklmnopqrstuvwxyz"
@@ -145,21 +149,25 @@ func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minL
 	var numberSet string = "0123456789"
 	var allCharSet string = lowerCharSet + upperCharSet + specialCharSet + numberSet
 
+	//Set special character
 	for i := 0; i < minSpecialChar; i++ {
 		random := rand.Intn(len(specialCharSet))
 		password.WriteString(string(specialCharSet[random]))
 	}
 
+	//Set numeric
 	for i := 0; i < minNum; i++ {
 		random := rand.Intn(len(numberSet))
 		password.WriteString(string(numberSet[random]))
 	}
 
+	//Set uppercase
 	for i := 0; i < minUpperCase; i++ {
 		random := rand.Intn(len(upperCharSet))
 		password.WriteString(string(upperCharSet[random]))
 	}
 
+	//Set lowercase
 	for i := 0; i < minLowerCase; i++ {
 		random := rand.Intn(len(lowerCharSet))
 		password.WriteString(string(lowerCharSet[random]))
@@ -178,6 +186,7 @@ func GeneratePassword(passwordLength, minSpecialChar, minNum, minUpperCase, minL
 }
 
 func SanitizeStringOfAlphabet(input string) string {
+	// Menghapus karakter yang bukan huruf, underscore
 	return strings.Map(func(r rune) rune {
 		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '_' {
 			return r
@@ -187,6 +196,7 @@ func SanitizeStringOfAlphabet(input string) string {
 }
 
 func SanitizeStringOfNumber(input string) string {
+	// Menghapus karakter yang bukan angka
 	return strings.Map(func(r rune) rune {
 		if r >= '0' && r <= '9' {
 			return r
@@ -196,9 +206,11 @@ func SanitizeStringOfNumber(input string) string {
 }
 
 func SanitizeString(input string) string {
+	// Define regex to remove dangerous characters
 	re := regexp.MustCompile(`[%'";()=<>` + "`" + `#\-\[\]]`)
 	sanitized := re.ReplaceAllString(input, "")
 
+	// Allow letters, numbers, underscores, spaces, and additional safe characters
 	return strings.Map(func(r rune) rune {
 		if (r >= 'a' && r <= 'z') ||
 			(r >= 'A' && r <= 'Z') ||
@@ -217,12 +229,17 @@ func SanitizeString(input string) string {
 }
 
 func SanitizeStringDateBetween(input string) string {
+	// Define regex untuk format tanggal yang diinginkan: YYYY-MM-DD_YYYY-MM-DD
 	re := regexp.MustCompile(`[^0-9\-_]`)
+	// Hapus semua karakter yang tidak sesuai dengan format yang diinginkan
 	sanitized := re.ReplaceAllString(input, "")
 
+	// Pastikan bahwa input sesuai dengan format 'YYYY-MM-DD_YYYY-MM-DD'
+	// regex untuk mencocokkan tanggal dengan format yang benar
 	dateFormat := `^\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}$`
 	dateRe := regexp.MustCompile(dateFormat)
 
+	// Jika format tidak sesuai, kembalikan string kosong atau bisa diubah sesuai kebutuhan
 	if !dateRe.MatchString(sanitized) {
 		return ""
 	}
@@ -568,9 +585,13 @@ func ArrayIntToString(idInts []int) string {
 
 func ValidateFileUpload(filename string) (bool, string) {
 	fileExtensions := []string{
+		// file image
 		".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg",
+		// file document
 		".txt", ".pdf", ".csv", ".docx", ".xlsx", ".pptx",
+		// file data
 		".json", ".xml", ".yml", ".yaml", ".ini", ".log",
+		// file media
 		".mp3", ".wav", ".ogg", ".flac", ".mp4", ".avi", ".mkv", ".webm",
 	}
 
@@ -666,7 +687,7 @@ func GetColorNameFromCode(codeStr string) string {
 	b := int(argb & 0xFF)
 
 	closestName := ""
-	minDistance := 1<<31 - 1
+	minDistance := 1<<31 - 1 // max int
 	for _, c := range colorList {
 		dr := r - c.R
 		dg := g - c.G
