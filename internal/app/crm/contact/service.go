@@ -14,6 +14,7 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
@@ -43,6 +44,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateRequest) (data map[string]interface{}, err error) {
+	var modelContactBackup *model.ContactEntityModel
 	if err = trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
 		if err != nil && err.Error() != "record not found" {
@@ -60,6 +62,8 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateReq
 		}
 		if err := s.ContactRepository.Create(ctx, modelContact).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		} else {
+			modelContactBackup = modelContact
 		}
 
 		for _, v := range userAdmin {
@@ -77,6 +81,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.ContactCreateReq
 
 		return nil
 	}); err != nil {
+		if modelContactBackup != nil {
+			s.ContactRepository.CreateWithoutContext(ctx, modelContactBackup)
+			logrus.Info("Recovery insert contact data success")
+		}
 		return nil, err
 	}
 	return map[string]interface{}{

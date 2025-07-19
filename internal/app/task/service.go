@@ -17,6 +17,7 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 	"selarashomeid/pkg/ws"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -311,6 +312,13 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindByBoardIDRequest) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
 
+	canAccess := false
+	var membersCanAccess []int
+	userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
 	boardData, err := s.BoardRepository.FindById(ctx, payload.BoardID)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -401,6 +409,7 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 				if dataUser != nil {
+					membersCanAccess = append(membersCanAccess, dataUser.ID)
 					assignToUser = append(assignToUser, map[string]interface{}{
 						"id":     dataUser.ID,
 						"name":   dataUser.Name,
@@ -456,6 +465,17 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 		if *countTotal > 0 {
 			task["checklist"] = fmt.Sprintf("%d/%d", *countCompleted, *countTotal)
 		}
+
+		if userLogin.RoleId == constant.ROLE_ID_ADMIN {
+			canAccess = true
+		}
+		if userLogin.ID == v.CreatedBy {
+			canAccess = true
+		}
+		if slices.Contains(membersCanAccess, userLogin.ID) {
+			canAccess = true
+		}
+		task["can_access"] = canAccess
 
 		res = append(res, task)
 	}

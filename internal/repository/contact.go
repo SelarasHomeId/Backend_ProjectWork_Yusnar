@@ -10,6 +10,7 @@ import (
 
 type Contact interface {
 	Create(ctx *abstraction.Context, data *model.ContactEntityModel) *gorm.DB
+	CreateWithoutContext(ctx *abstraction.Context, data *model.ContactEntityModel) *gorm.DB
 	Find(ctx *abstraction.Context, no_paging bool) (data []*model.ContactEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
@@ -55,4 +56,8 @@ func (r *contact) Count(ctx *abstraction.Context) (data *int, err error) {
 		Error
 	data = &count.Count
 	return
+}
+
+func (r *contact) CreateWithoutContext(ctx *abstraction.Context, data *model.ContactEntityModel) *gorm.DB {
+	return r.Db.Create(data)
 }

@@ -10,6 +10,7 @@ import (
 
 type Affiliate interface {
 	Create(ctx *abstraction.Context, data *model.AffiliateEntityModel) *gorm.DB
+	CreateWithoutContext(ctx *abstraction.Context, data *model.AffiliateEntityModel) *gorm.DB
 	Find(ctx *abstraction.Context, no_paging bool) (data []*model.AffiliateEntityModel, err error)
 	Count(ctx *abstraction.Context) (data *int, err error)
 }
@@ -55,4 +56,8 @@ func (r *affiliate) Count(ctx *abstraction.Context) (data *int, err error) {
 		Error
 	data = &count.Count
 	return
+}
+
+func (r *affiliate) CreateWithoutContext(ctx *abstraction.Context, data *model.AffiliateEntityModel) *gorm.DB {
+	return r.Db.Create(data)
 }

@@ -14,6 +14,7 @@ import (
 	"selarashomeid/pkg/util/response"
 	"selarashomeid/pkg/util/trxmanager"
 
+	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
@@ -43,6 +44,7 @@ func NewService(f *factory.Factory) Service {
 }
 
 func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateRequest) (data map[string]interface{}, err error) {
+	var modelAffiliateBackup *model.AffiliateEntityModel
 	if err = trxmanager.New(s.DB).WithTrx(ctx, func(ctx *abstraction.Context) error {
 		userAdmin, err := s.UserRepository.FindByRoleIdArr(ctx, constant.ROLE_ID_ADMIN, true)
 		if err != nil && err.Error() != "record not found" {
@@ -62,6 +64,8 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateR
 		}
 		if err := s.AffiliateRepository.Create(ctx, modelAffiliate).Error; err != nil {
 			return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+		} else {
+			modelAffiliateBackup = modelAffiliate
 		}
 
 		for _, v := range userAdmin {
@@ -79,6 +83,10 @@ func (s *service) Create(ctx *abstraction.Context, payload *dto.AffiliateCreateR
 
 		return nil
 	}); err != nil {
+		if modelAffiliateBackup != nil {
+			s.AffiliateRepository.CreateWithoutContext(ctx, modelAffiliateBackup)
+			logrus.Info("Recovery insert affiliate data success")
+		}
 		return nil, err
 	}
 	return map[string]interface{}{
