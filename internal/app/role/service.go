@@ -70,7 +70,7 @@ func (s *service) Export(ctx *abstraction.Context) (string, *bytes.Buffer, error
 
 	f := excelize.NewFile()
 	sheet := "Master Data - Role"
-	index, err := f.NewSheet(sheet)
+	index, err := f.NewSheet(general.TruncateSheetName(sheet))
 	if err != nil {
 		return "", nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

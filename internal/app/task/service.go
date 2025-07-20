@@ -312,8 +312,6 @@ func (s *service) Delete(ctx *abstraction.Context, payload *dto.TaskDeleteByIDRe
 func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindByBoardIDRequest) (map[string]interface{}, error) {
 	var res []map[string]interface{} = nil
 
-	canAccess := false
-	var membersCanAccess []int
 	userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -337,6 +335,9 @@ func (s *service) FindByBoardId(ctx *abstraction.Context, payload *dto.TaskFindB
 	}
 
 	for _, v := range data {
+		canAccess := false
+		var membersCanAccess []int
+
 		countFileData, err := s.TaskFileRepository.CountByTaskId(ctx, v.ID)
 		if err != nil && err.Error() != "record not found" {
 			return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -893,6 +894,13 @@ func (s *service) Update(ctx *abstraction.Context, payload *dto.TaskUpdateReques
 func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRequest) (map[string]interface{}, error) {
 	var res map[string]interface{} = nil
 
+	canAccess := false
+	var membersCanAccess []int
+	userLogin, err := s.UserRepository.FindById(ctx, ctx.Auth.ID)
+	if err != nil && err.Error() != "record not found" {
+		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
+	}
+
 	data, err := s.TaskRepository.FindById(ctx, payload.ID)
 	if err != nil && err.Error() != "record not found" {
 		return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
@@ -976,6 +984,7 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 					return nil, response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 				}
 				if dataUser != nil {
+					membersCanAccess = append(membersCanAccess, dataUser.ID)
 					assignToUser = append(assignToUser, map[string]interface{}{
 						"id":     dataUser.ID,
 						"name":   dataUser.Name,
@@ -1158,6 +1167,16 @@ func (s *service) FindById(ctx *abstraction.Context, payload *dto.TaskFindByIDRe
 			"data":  resChecklist,
 		}
 
+		if userLogin.RoleId == constant.ROLE_ID_ADMIN {
+			canAccess = true
+		}
+		if userLogin.ID == data.CreatedBy {
+			canAccess = true
+		}
+		if slices.Contains(membersCanAccess, userLogin.ID) {
+			canAccess = true
+		}
+		res["can_access"] = canAccess
 	}
 
 	return map[string]interface{}{
@@ -1442,7 +1461,7 @@ func (s *service) Export(ctx *abstraction.Context, payload *dto.TaskExportReques
 }
 
 func ProcessProjectToExcel(s *service, ctx *abstraction.Context, f *excelize.File, sheetName string, workspace *model.WorkspaceEntityModel, project *model.ProjectEntityModel, dataBoard []*model.BoardEntityModel) error {
-	index, err := f.NewSheet(sheetName)
+	index, err := f.NewSheet(general.TruncateSheetName(sheetName))
 	if err != nil {
 		return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}
@@ -1493,7 +1512,7 @@ func ProcessProjectToExcel(s *service, ctx *abstraction.Context, f *excelize.Fil
 
 func ProcessTaskToExcel(s *service, ctx *abstraction.Context, f *excelize.File, sheetName string, dataTask []*model.TaskEntityModel) error {
 	sheetBoard := sheetName
-	index, err := f.NewSheet(sheetBoard)
+	index, err := f.NewSheet(general.TruncateSheetName(sheetBoard))
 	if err != nil {
 		return response.ErrorBuilder(http.StatusInternalServerError, err, "server_error")
 	}

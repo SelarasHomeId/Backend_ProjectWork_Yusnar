@@ -20,6 +20,7 @@ import (
 	"text/template"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/sirupsen/logrus"
@@ -647,11 +648,12 @@ func DiffIntSlices(oldSlice, newSlice []int) (added []int, removed []int) {
 
 func FormatNamesFromArray(names []string) string {
 	n := len(names)
-	if n == 0 {
+	switch n {
+	case 0:
 		return ""
-	} else if n == 1 {
+	case 1:
 		return names[0]
-	} else if n == 2 {
+	case 2:
 		return names[0] + " dan " + names[1]
 	}
 	return strings.Join(names[:n-1], ", ") + ", dan " + names[n-1]
@@ -909,4 +911,13 @@ func RemoveDuplicateArrayInt(input []int) []int {
 		}
 	}
 	return result
+}
+
+func TruncateSheetName(name string) string {
+	var invalidChars = regexp.MustCompile(`[\\/*?:\[\]]`)
+	name = invalidChars.ReplaceAllString(name, "_")
+	if utf8.RuneCountInString(name) > 31 {
+		return string([]rune(name)[:31])
+	}
+	return name
 }
