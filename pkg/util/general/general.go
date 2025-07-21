@@ -542,11 +542,17 @@ func ProcessHTMLResponseEmail(filePath, placeholder, value string) string {
 
 func ValidateImage(filename string) (bool, string) {
 	imageExtensions := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp", ".svg"}
+
 	ext := strings.ToLower(filepath.Ext(filename))
-	nameOnly := strings.ReplaceAll(strings.TrimSuffix(filename, ext), ".", "")
+	nameWithoutExt := strings.TrimSuffix(filename, ext)
+
+	safeName := strings.ReplaceAll(nameWithoutExt, ".", "")
+	safeName = strings.ReplaceAll(safeName, "/", "")
+	safeName = strings.ReplaceAll(safeName, "\\", "")
+	safeName = strings.ReplaceAll(safeName, " ", "_")
 
 	timestamp := time.Now().Format("20060102150405")
-	fullFileName := fmt.Sprintf("%s_%s%s", nameOnly, timestamp, ext)
+	fullFileName := safeName + "_" + timestamp + ext
 
 	for _, validExt := range imageExtensions {
 		if ext == validExt {
