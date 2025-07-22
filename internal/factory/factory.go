@@ -64,6 +64,15 @@ func (f *Factory) SetupDb() {
 	if err != nil {
 		panic("Failed setup db, connection is undefined")
 	}
+
+	// sqlDB, err := db.DB()
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// sqlDB.SetMaxIdleConns(5)
+	// sqlDB.SetMaxOpenConns(20)
+	// sqlDB.SetConnMaxLifetime(time.Hour)
+
 	f.Db = db
 }
 

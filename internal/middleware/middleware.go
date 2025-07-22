@@ -23,6 +23,7 @@ func Init(e *echo.Echo, redisClient *redis.Client) {
 	e.Use(LoginAttempt(NewLoginAttemptMemoryStore(5)))
 	e.Use(
 		echoMiddleware.Recover(),
+		// echoMiddleware.Gzip(),
 		echoMiddleware.CORSWithConfig(echoMiddleware.CORSConfig{
 			AllowOrigins: []string{"*"},
 			AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization, echo.HeaderAccessControlAllowOrigin, echo.HeaderAccessControlAllowCredentials, echo.HeaderContentSecurityPolicy, "x-user-id", "ngrok-skip-browser-warning"},
