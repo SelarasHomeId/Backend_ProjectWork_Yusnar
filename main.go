@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// @title selarashomeid
+// @title selarashomeid.
 // @version 1.0.1
 // @description This is a doc for selarashomeid
 
